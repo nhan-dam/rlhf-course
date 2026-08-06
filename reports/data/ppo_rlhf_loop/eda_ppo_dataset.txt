@@ -1,0 +1,144 @@
+────────────────────────────────────────────────── EDA - Anthropic/hh-rlhf (PPO prompts) ───────────────────────────────────────────────────
+                               Schema - Anthropic/hh-rlhf                                
+┏━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ column   ┃ Python type ┃ example value (truncated)                                    ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ chosen   │ str         │ "\n\nHuman: What are some cuss words in english?\n\nAssis... │
+│ rejected │ str         │ "\n\nHuman: What are some cuss words in english?\n\nAssis... │
+└──────────┴─────────────┴──────────────────────────────────────────────────────────────┘
+PPO ignores the preference labels: it takes only the prompt, extracted from each 'chosen' dialogue up to the final '\n\nAssistant:' marker, 
+and the policy generates the response. So the units analysed below are prompts, not preference pairs.
+
+                               Splits and sizes                               
+┏━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ split ┃    rows ┃ role                                                     ┃
+┡━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ train │ 160,800 │ PPO training + 100 eval prompts (eval carved from train) │
+│ test  │   8,552 │ shipped test split (unused by the PPO stage)             │
+└───────┴─────────┴──────────────────────────────────────────────────────────┘
+Analysing all 160,800 prompts from 'train'.
+
+Random sample preview (6 examples, each field clipped to 700 chars)
+
+╭──────────────────────────────────────────────────────────── example #105253 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: Can you give an overview the process of getting a life insurance policy?                                                          │
+│                                                                                                                                          │
+│ Assistant:                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── example #124449 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: What do people mean when they refer to women being either Madonnas or whores?                                                     │
+│                                                                                                                                          │
+│ Assistant: Oh, that.  Well, it comes from Italian literature, and it’s part of the portrayal of different types of women.  There are     │
+│ some who are saints or “virgins”, and there are others who are “whores”.  The “Madonna” woman is faithful to her man, while the “whore”  │
+│ is more of a “sexual being” and less of a motherly figure.  It’s interesting that the word “whore” can mean something different than the │
+│ action, right?                                                                                                                           │
+│                                                                                                                                          │
+│ Human: What does this dichotomy express in culture? For example, does it mean that women have limited roles as either overly sexual      │
+│ whores or overly pure madonnas?                                                                                                          │
+│                                                                                                                                          │
+│ Assistant:                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #69628 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: I'm planning a big holiday dinner, but need ideas for dessert. Do you have any good dessert suggestions?                          │
+│                                                                                                                                          │
+│ Assistant: What sort of dessert are you thinking about?                                                                                  │
+│                                                                                                                                          │
+│ Human: I want a couple of options for my guests. Maybe something chocolate. And also something fruit-based.                              │
+│                                                                                                                                          │
+│ Assistant:                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── example #138062 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: How can I clean plumbing pipes?                                                                                                   │
+│                                                                                                                                          │
+│ Assistant: Hm, this is a challenging question for me. What does cleaning plumbing pipes look like, and what materials are you using?     │
+│                                                                                                                                          │
+│ Human: I am asking you.  They are just regular plumbing pipes.                                                                           │
+│                                                                                                                                          │
+│ Assistant: Alright, I see.  Are you asking about routine maintenance of plumbing pipes, or you’re asking because there is some real      │
+│ problem you’re having?                                                                                                                   │
+│                                                                                                                                          │
+│ Human: I just want to know how to keep them clean.                                                                                       │
+│                                                                                                                                          │
+│ Assistant: Got it.  So when you say “keep them clean”, are you referring to any water/soap interactions that lead to residue?  Or are    │
+│ you referring to minor stains or damage that isn’t significant enough to impact flow?                                                    │
+│                                                                                                                                          │
+│ Human: I want to keep them unclog [...]                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #70570 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: How much does a new Ferrari automobile cost?                                                                                      │
+│                                                                                                                                          │
+│ Assistant: The price of a new Ferrari car will depend on several factors, such as the model of car you want, the level of equipment, and │
+│ the options that you want.  Right now, a new Ferrari could be purchased for roughly $150,000.                                            │
+│                                                                                                                                          │
+│ Human: Is it a fast car?                                                                                                                 │
+│                                                                                                                                          │
+│ Assistant: This Ferrari has a top speed of over 190 miles per hour and a 0 to 60 mph time of less than 4.3 seconds.                      │
+│                                                                                                                                          │
+│ Human: Wow, that is crazy. I think they would impound the car where I live if they caught you driving that fast.                         │
+│                                                                                                                                          │
+│ Assistant:                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #14351 ─────────────────────────────────────────────────────────────╮
+│ prompt                                                                                                                                   │
+│ Human: I am trying to locate the residential address of actress  Elle Fanning.                                                           │
+│                                                                                                                                          │
+│ Assistant: Can you tell me why you’re looking for that?                                                                                  │
+│                                                                                                                                          │
+│ Human: Have you seen how beautiful she is?                                                                                               │
+│                                                                                                                                          │
+│ Assistant:                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  Prompt token-length  
+     distribution      
+┏━━━━━━━━━━━━┳━━━━━━━━┓
+┃ percentile ┃ prompt ┃
+┡━━━━━━━━━━━━╇━━━━━━━━┩
+│        p50 │    100 │
+│        p75 │    203 │
+│        p90 │    323 │
+│        p95 │    421 │
+│        p99 │    688 │
+│      p99.9 │   1306 │
+│        max │   1896 │
+└────────────┴────────┘
+Effect of each cap (filter: a row is dropped if length
+                        > cap)                        
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃            cap ┃ rows kept ┃ % kept ┃ rows dropped ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━┩
+│            128 │    94,108 │ 58.52% │       66,692 │
+│            192 │   117,733 │ 73.22% │       43,067 │
+│ 256  (current) │   133,331 │ 82.92% │       27,469 │
+│            320 │   144,433 │ 89.82% │       16,367 │
+│            384 │   150,360 │ 93.51% │       10,440 │
+└────────────────┴───────────┴────────┴──────────────┘
+Note: no candidate keeps >= 99% of rows; the length distribution is long-tailed, so any cap affects a real fraction.
+
+          Prompt conversation depth           
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ statistic                          ┃ value ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ median Human turns                 │     2 │
+│ median Assistant turns (context)   │     2 │
+│ max Human turns                    │    34 │
+│ single-turn prompts (1 Human turn) │ 30.7% │
+│ multi-turn prompts (>1 Human turn) │ 69.3% │
+└────────────────────────────────────┴───────┘
+Human-turn counts (turns:prompts): 1:49439, 2:45309, 3:39623, 4:20203, 5:3576, 6:1272, 7:579, 8:294
+
+                Data quality checks                
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┓
+┃ check                     ┃ count ┃ % of sample ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━┩
+│ empty / whitespace prompt │     0 │       0.00% │
+│ duplicate prompts         │   821 │       0.51% │
+└───────────────────────────┴───────┴─────────────┘
+Note: HH-RLHF reuses each prompt across several preference pairs, so duplicate prompts are expected here; PPO only needs the distinct 
+prompts (159,979 unique in this sample).
+

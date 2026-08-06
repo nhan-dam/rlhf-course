@@ -1,0 +1,15 @@
+{
+  "label": "01772c12",
+  "held_out_accuracy": 0.6736670020120724,
+  "held_out_accuracy_se": 0.0052579317826789256,
+  "held_out_margin": 0.37224191427230835,
+  "acceptance_threshold": 0.65,
+  "passed": true,
+  "n_eval_pairs": 7952,
+  "n_test_split_pairs": 8552,
+  "length_retention": 0.9298409728718429,
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
+  "dataset_name": "Anthropic/hh-rlhf",
+  "max_length": 512,
+  "timestamp_utc": "2026-07-16T05:11:46+00:00"
+}

@@ -1,0 +1,180 @@
+────────────────────────────────────────────────── EDA - databricks/databricks-dolly-15k ───────────────────────────────────────────────────
+                          Schema - databricks/databricks-dolly-15k                          
+┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ column      ┃ Python type ┃ example value (truncated)                                    ┃
+┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ instruction │ str         │ 'When did Virgin Australia start operating?'                 │
+│ context     │ str         │ "Virgin Australia, the trading name of Virgin Australia A... │
+│ response    │ str         │ 'Virgin Australia commenced services on 31 August 2000 as... │
+│ category    │ str         │ 'closed_qa'                                                  │
+└─────────────┴─────────────┴──────────────────────────────────────────────────────────────┘
+Each example is an (instruction, context, response, category) record; the 'context' field is an optional reference passage and is empty for 
+most examples. Training maps it to a prompt/completion pair, and the column boundary is what lets SFTTrainer apply the completion-only loss.
+
+                           Splits and sizes                           
+┏━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ split ┃   rows ┃ role                                              ┃
+┡━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ train │ 15,011 │ SFT training (5% held out for eval at train time) │
+└───────┴────────┴───────────────────────────────────────────────────┘
+Dolly ships a single 'train' split, so the SFT stage carves its own 5% validation slice for overfitting detection.
+
+Analysing all 15,011 examples.
+
+Random sample preview (6 examples, each field clipped to 600 chars)
+
+╭───────────────────────────────────────────────────────────── example #9823 ──────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ open_qa                                                                                                                                  │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ What causes global warming?                                                                                                              │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ Global warming is caused by the release of greenhouses gases into the atmosphere. Greenhouse gases in the atmosphere trap the heat from  │
+│ the sun and lead to an overall increase in temperature on the planet. Greenhouse gases are mostly produced by burning fossil fuels like  │
+│ coal, oil, and natural gas. Deforestation is also a contributing factor to global warming since trees capture carbon from the atmosphere │
+│ when growing, so cutting them down or burning them both releases carbon they’ve been storing, as well as removes their ability to clean  │
+│ the air.                                                                                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #11614 ─────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ closed_qa                                                                                                                                │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ Given this paragraph, which two US interstates were not originally continuous? Have they now been made continuous?                       │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│ The system was proclaimed complete in 1992, but two of the original Interstates—I-95 and I-70—were not continuous: both of these         │
+│ discontinuities were due to local opposition, which blocked efforts to build the necessary connections to fully complete the system.     │
+│ I-95 was made a continuous freeway in 2018, and thus I-70 remains the only original Interstate with a discontinuity.                     │
+│                                                                                                                                          │
+│ I-95 was discontinuous in New Jersey because of the cancellation of the Somerset Freeway. This situation was remedied when the           │
+│ construction of the Pennsylvania Turnpike/Interstate 95 Interchange Project started in 2010 a [...]                                      │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ The two discontinuous interstates were the I-95 and the I-70. The I-95 was discontinuous up until September 22, 2018 when the            │
+│ construction of the Pennsylvania Turnpike/Interstate was completed. The I-70, however, remains discontinuous.                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #6499 ──────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ creative_writing                                                                                                                         │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ Imagine you are the last person on Earth. Write a diary entry describing your thoughts and feelings.                                     │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ Dear Diary,                                                                                                                              │
+│ As warned a few days back, all the humans on planet Earth have disappeared. I am now the last person on Earth. There are a lot of        │
+│ positives and, at the same time, many negatives. I now have the freedom to do what I want without anyone being my obstacle. I can live   │
+│ my life according to my wish and do not have to follow the rules and restrictions of society. I can now live the “Hakuna Matata” life    │
+│ without worrying about my future temporarily. Alas! There’s also a negative side to this heaven on Earth. Now that the world's farmers   │
+│ have disappeared, the biodegradable food items would o [...]                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #12888 ─────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ brainstorming                                                                                                                            │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ Can you suggest 5 ways to use a Katana other than a weapon ?                                                                             │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ 1. The Katana in its' sheath can be used as a walking stick                                                                              │
+│ 2. Used to removed overgrown foliage.                                                                                                    │
+│ 3. Can presented as a gift                                                                                                               │
+│ 4. Decorative purposes for your office, house or vehicle                                                                                 │
+│ 5. Fancy dress events                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #6587 ──────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ information_extraction                                                                                                                   │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ From the passage below, list the prizes won by Laia Forcadell Arenas.                                                                    │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│ Laia Forcadell Arenas (born June 6, 1982 in Tortosa, Tarragona, Catalonia) is a female Spanish sprinter and hurdler. She won the gold    │
+│ medal for the 400 m hurdles at the 2006 Ibero-American Championships in Ponce, Puerto Rico, and bronze at the 2010 Ibero-American        │
+│ Championships in San Fernando, Cádiz, Spain.                                                                                             │
+│ Forcadell represented Spain at the 2008 Summer Olympics in Beijing, where she competed for the women's 400 m hurdles. She ran in the     │
+│ fourth heat against six other athletes, including Poland's Anna Jesień and Czech Republic's Zuzana Hejnová, who were both considered top │
+│ medal contenders in t [...]                                                                                                              │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ Laia Forcadell Arenas won the gold medal for the 400 m hurdles at the 2006 Ibero-American Championships in Ponce, Puerto Rico, and       │
+│ bronze at the 2010 Ibero-American Championships in San Fernando, Cádiz, Spain.                                                           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #1339 ──────────────────────────────────────────────────────────────╮
+│ category                                                                                                                                 │
+│ open_qa                                                                                                                                  │
+│                                                                                                                                          │
+│ instruction                                                                                                                              │
+│ How are Social Security and Medicare in the USA funded?                                                                                  │
+│                                                                                                                                          │
+│ context                                                                                                                                  │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│ response                                                                                                                                 │
+│ Social Security and Medicare in the USA are funded through payroll taxes on income. Both employees and employers are required to pay     │
+│ payroll taxes.                                                                                                                           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+    Token-length distribution (prompt /     
+            completion / total)             
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━┓
+┃ percentile ┃ prompt ┃ completion ┃ total ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━┩
+│        p50 │     40 │         46 │   128 │
+│        p75 │    139 │         96 │   239 │
+│        p90 │    295 │        174 │   412 │
+│        p95 │    436 │        260 │   583 │
+│        p99 │    933 │        584 │  1200 │
+│      p99.9 │   2589 │       1510 │  2986 │
+│        max │   8341 │       5448 │  8620 │
+└────────────┴────────┴────────────┴───────┘
+Effect of each cap (truncate: cap applies if length <= cap) 
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
+┃            cap ┃ rows intact ┃ % intact ┃ rows truncated ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
+│            256 │      11,619 │   77.40% │          3,392 │
+│            384 │      13,299 │   88.60% │          1,712 │
+│ 512  (current) │      14,011 │   93.34% │          1,000 │
+│            640 │      14,404 │   95.96% │            607 │
+│            768 │      14,610 │   97.33% │            401 │
+└────────────────┴─────────────┴──────────┴────────────────┘
+Note: no candidate leaves intact >= 99% of rows; the length distribution is long-tailed, so any cap affects a real fraction.
+
+              Task-category mix               
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┓
+┃ category               ┃ count ┃ % of data ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━┩
+│ open_qa                │ 3,742 │     24.9% │
+│ general_qa             │ 2,191 │     14.6% │
+│ classification         │ 2,136 │     14.2% │
+│ closed_qa              │ 1,773 │     11.8% │
+│ brainstorming          │ 1,766 │     11.8% │
+│ information_extraction │ 1,506 │     10.0% │
+│ summarization          │ 1,188 │      7.9% │
+│ creative_writing       │   709 │      4.7% │
+└────────────────────────┴───────┴───────────┘
+Context present in 4,467 / 15,011 examples (29.8%); the rest are instruction-only, so the prompt template drops the context block for them.
+
+                 Data quality checks                  
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┓
+┃ check                          ┃ count ┃ % of data ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━┩
+│ empty / whitespace instruction │     0 │     0.00% │
+│ empty / whitespace response    │     0 │     0.00% │
+│ duplicate records              │    15 │     0.10% │
+└────────────────────────────────┴───────┴───────────┘
+No empty-response examples found.
+

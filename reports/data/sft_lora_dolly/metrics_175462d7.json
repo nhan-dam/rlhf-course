@@ -1,0 +1,13 @@
+{
+  "label": "175462d7",
+  "best_eval_loss": 1.8457982540130615,
+  "best_eval_perplexity": 6.333153238153944,
+  "final_eval_loss": 1.8487155437469482,
+  "final_train_loss": 1.9763313293457032,
+  "best_checkpoint": "results/sft_lora_dolly/checkpoints_175462d7/checkpoint-1800",
+  "global_step": 2676,
+  "model_name": "Qwen/Qwen2.5-0.5B",
+  "dataset_name": "databricks/databricks-dolly-15k",
+  "timestamp_utc": "2026-06-27T05:16:10+00:00",
+  "note": "Backfilled from trainer_state.json; this run predates metrics-saving. best_checkpoint is the lowest-eval-loss step (the run itself had load_best_model_at_end disabled)."
+}

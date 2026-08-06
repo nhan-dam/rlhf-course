@@ -1,0 +1,6 @@
+# Reward-model runs (ranked by held-out pairwise accuracy)
+
+| label | accuracy | margin | r | targets | epochs | lr | pairs | timestamp |
+|---|---|---|---|---|---|---|---|---|
+| 56239d4c | 0.677 | 0.420 | 32 | 7 | 2 | 1e-04 | 7952 | 2026-07-16 05:34:36 |
+| 01772c12 | 0.674 | 0.372 | 16 | 2 | 1 | 1e-04 | 7952 | 2026-07-16 05:11:46 |

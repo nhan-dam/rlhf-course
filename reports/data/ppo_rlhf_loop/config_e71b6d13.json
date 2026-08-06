@@ -1,0 +1,30 @@
+{
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
+  "rm_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/rm-model",
+  "dataset_name": "Anthropic/hh-rlhf",
+  "seed": 42,
+  "lora_r": 32,
+  "lora_alpha": 64,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "v_proj"
+  ],
+  "learning_rate": 1e-05,
+  "total_episodes": 10000,
+  "per_device_train_batch_size": 4,
+  "gradient_accumulation_steps": 4,
+  "num_ppo_epochs": 4,
+  "num_mini_batches": 1,
+  "kl_coef": 0.2,
+  "gradient_checkpointing": true,
+  "response_length": 128,
+  "temperature": 0.7,
+  "missing_eos_penalty": 1.0,
+  "max_prompt_tokens": 256,
+  "rollout_batch_size": 4,
+  "eval_examples": 100,
+  "report_to": "tensorboard",
+  "logging_steps": 10,
+  "save_steps": 100
+}

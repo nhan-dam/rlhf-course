@@ -1,0 +1,13 @@
+{
+  "label": "e71b6d13",
+  "rlhf_reward": 0.18629556894302368,
+  "reward_model_score": 0.404296875,
+  "kl": 1.0900064706802368,
+  "entropy": 0.869140625,
+  "kl_coef": 0.2,
+  "total_episodes": 10000,
+  "global_step": 625,
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
+  "rm_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/rm-model",
+  "timestamp_utc": "2026-07-04T15:35:56+00:00"
+}

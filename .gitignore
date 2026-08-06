@@ -1,0 +1,24 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# OS
+.DS_Store
+
+# Training artefacts: checkpoints, metrics, sweeps, exports.
+# Regenerate with the stage commands in README Section 4.
+results/
+
+# Model weights. Adapters live in <stage>-model/, full merged weights in
+# <stage>-model-merged/. Never commit either: git keeps every version of a
+# blob forever, so one 954 MB file bloats all future clones even if deleted.
+*-model/
+*-model-merged/
+*.gguf

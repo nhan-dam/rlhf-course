@@ -1,0 +1,13 @@
+{
+  "label": "0ac53a30",
+  "best_eval_loss": 1.5105820894241333,
+  "best_eval_perplexity": 4.529366523476135,
+  "final_eval_loss": 1.5303146839141846,
+  "final_train_loss": 1.4937647819519042,
+  "best_checkpoint": "results/sft_lora_dolly/checkpoints_0ac53a30/checkpoint-1800",
+  "global_step": 2676,
+  "model_name": "meta-llama/Llama-3.2-3B",
+  "dataset_name": "databricks/databricks-dolly-15k",
+  "timestamp_utc": "2026-06-26T23:33:19+00:00",
+  "note": "Backfilled from trainer_state.json; this run predates metrics-saving. best_checkpoint is the lowest-eval-loss step (the run itself had load_best_model_at_end disabled)."
+}
