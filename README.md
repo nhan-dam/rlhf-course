@@ -1,5 +1,7 @@
 # RLHF Course: An End-to-End RLHF Pipeline
 
+[![CI](https://github.com/nhan-dam/rlhf-course/actions/workflows/ci.yml/badge.svg)](https://github.com/nhan-dam/rlhf-course/actions/workflows/ci.yml)
+
 This repository implements the classical reinforcement learning from human feedback (RLHF) pipeline end to end, from a pre-trained base model to a policy aligned with human preferences. It uses a small base model so that every stage, including the multi-model proximal policy optimisation (PPO) stage, fits on a single workstation.
 
 This README covers what is here and how to run it. Design choices, diagnostics, and results for each stage are in that stage's report under `reports/`.
