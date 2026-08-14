@@ -14,7 +14,7 @@ The RM maps a (prompt, response) pair to a scalar preference score. Under the Br
 
 <span id="eq-rm-loss"></span>
 
-$$\mathcal{L}_{\text{RM}}(\phi) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) \right]. \tag{1}$$
+$$\mathcal{L}_{\text{RM}}(\phi) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) \right]. \qquad (1)$$
 
 `trl.RewardTrainer` implements (1) natively and consumes HH-RLHF's implicit-prompt format (`chosen`/`rejected` text columns) without any preprocessing.
 

@@ -16,13 +16,13 @@ The Kullback-Leibler (KL) penalised objective that PPO optimises numerically, ma
 
 <span id="eq-implicit-reward"></span>
 
-$$r(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x), \tag{1}$$
+$$r(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x), \qquad (1)$$
 
 where $Z(x)$ is a partition function that depends only on the prompt $x$. Substituting [(1)](#eq-implicit-reward) into the Bradley-Terry preference likelihood used to train the RM makes $Z(x)$ cancel (both responses share the prompt), leaving a loss defined on the policy alone,
 
 <span id="eq-dpo-loss"></span>
 
-$$\mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_w, y_l)}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right)\right], \tag{2}$$
+$$\mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_w, y_l)}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right)\right], \qquad (2)$$
 
 where $y_w$ and $y_l$ are the chosen and rejected responses and $\sigma$ is the logistic function. The two $\beta$-scaled log-ratios in [(2)](#eq-dpo-loss) are the **implicit rewards**: the quantity the RM stage learnt explicitly is here read off the policy itself. One supervised pass over the preference pairs therefore replaces both the RM fit and the PPO loop, with no rollout generation and no critic. What is given up is equally concrete: there is no explicit reward model to probe adversarially before training, and the optimisation is tied to the fixed preference dataset rather than to fresh on-policy samples.
 

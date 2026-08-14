@@ -23,7 +23,7 @@ A pre-trained language model (LM) is a next-token predictor with no notion of in
 
 <span id="eq-sft-loss"></span>
 
-$$\mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t=1}^{T} \log p_\theta(y_t \mid x, y_{<t}). \tag{1}$$
+$$\mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t=1}^{T} \log p_\theta(y_t \mid x, y_{\lt t}). \qquad (1)$$
 
 The gradient signal should target generation behaviour, so the sum in [(1)](#eq-sft-loss) runs over response tokens only, not prompt tokens. The resulting model is denoted $\pi_{\text{ref}}$ and anchors the Kullback-Leibler (KL) penalty in the PPO stage, which is why defects introduced here propagate through the entire pipeline.
 

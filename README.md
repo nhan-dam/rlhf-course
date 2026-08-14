@@ -19,6 +19,14 @@ Every stage is low-rank adaptation (LoRA) based: only adapters, plus the RM's sc
 | PPO | `src/pipeline/ppo_rlhf_loop.py` | `Anthropic/hh-rlhf` prompts | policy adapter (`ppo-model`) | `reports/report_ppo_rlhf_loop.md` |
 | DPO | `src/pipeline/dpo_lora_hh.py` | `Anthropic/hh-rlhf` pairs | policy adapter (`dpo-model`) | `reports/report_dpo_lora_hh.md` |
 
+### Where to Start Reading
+
+The reports are the substance of this project, and three findings are the ones worth reading first:
+
+- **Several of TRL's logged PPO metrics are corrupted by post-EOS padding.** PPO report, Section 8, audits all fifteen logged scalars against the trainer source and classifies each as clean or affected, with the deflation factor derived per update.
+- **The first held-out evaluation was underpowered, and the reported result was corrected.** PPO report, Section 6, reports the four-sample paired comparison that replaced it, and explains why the single-draw win rate could not support the claim originally made from it.
+- **Negative and null results are reported rather than omitted**, e.g. the reward model's adversarial blind spots (RM report, Sections 6.3 and 7), the higher-capacity configuration that bought no accuracy (RM report, Section 8), and the checkpoint sweep that refuses to be used for selection (PPO report, Section 6.2).
+
 ## 2. Repository Layout
 
 - `src/`: the pipeline code, run as modules, listed in workflow order.
