@@ -14,7 +14,7 @@ The policy $\pi_\theta$ (initialised from $\pi_{\text{ref}}$, the SFT model) gen
 
 <span id="eq-kl-reward"></span>
 
-$$r(x, y) = r_\phi(x, y) - \beta \cdot \text{KL}\left[\pi_\theta(\cdot \mid x) \parallel \pi_{\text{ref}}(\cdot \mid x)\right], \qquad (1)$$
+$$\tilde{r}(x, y) = r_\phi(x, y) - \beta \cdot \text{KL}\left[\pi_\theta(\cdot \mid x) \parallel \pi_{\text{ref}}(\cdot \mid x)\right], \qquad (1)$$
 
 where $r_\phi(x, y)$ is the scalar score that the frozen RM, with learned parameters $\phi$, assigns to response $y$ given prompt $x$, and $\beta$ is a fixed coefficient controlling the strength of the KL penalty (see [Section 3.6](#36-fixed-kl-coefficient)). The KL penalty in [(1)](#eq-kl-reward) prevents the policy from drifting into degenerate outputs that exploit the RM (reward hacking). Classically this requires four models in memory: the actor, the frozen reference, the frozen RM, and the critic.
 
