@@ -1,0 +1,21 @@
+{
+  "label": "75047d16",
+  "gate_accuracy": 0.6350679482930063,
+  "gate_margin": 0.3479505158654597,
+  "gate_loss": 0.6316473484039307,
+  "gate_logps_chosen": -147.67018096368756,
+  "gate_logps_rejected": -146.1789764041414,
+  "beta": 0.1,
+  "loss_type": "sigmoid",
+  "n_eval_pairs": 6033,
+  "n_eval_subsample_pairs": 1000,
+  "n_test_split_pairs": 8552,
+  "length_retention": 0.8223807296538821,
+  "n_train_pairs": 132924,
+  "max_prompt_tokens": 256,
+  "max_pair_tokens": 512,
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
+  "dataset_name": "Anthropic/hh-rlhf",
+  "global_step": 8308,
+  "timestamp_utc": "2026-09-20T02:17:09+00:00"
+}

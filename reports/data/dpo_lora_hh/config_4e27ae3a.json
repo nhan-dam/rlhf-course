@@ -1,5 +1,5 @@
 {
-  "sft_model_path": null,
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
   "dataset_name": "Anthropic/hh-rlhf",
   "seed": 42,
   "lora_r": 32,
@@ -9,7 +9,7 @@
     "q_proj",
     "v_proj"
   ],
-  "beta": 0.1,
+  "beta": 0.3,
   "loss_type": "sigmoid",
   "learning_rate": 0.0001,
   "warmup_ratio": 0.03,

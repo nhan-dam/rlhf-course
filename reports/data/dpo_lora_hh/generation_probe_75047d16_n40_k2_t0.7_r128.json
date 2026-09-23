@@ -1,0 +1,1319 @@
+{
+  "label": "75047d16",
+  "beta": 0.1,
+  "loss_type": "sigmoid",
+  "dataset_name": "Anthropic/hh-rlhf",
+  "max_prompt_tokens": 256,
+  "num_prompts": 40,
+  "samples_per_prompt": 2,
+  "temperature": 0.7,
+  "response_length": 128,
+  "seed": 42,
+  "reverse_pass": true,
+  "timestamp_utc": "2026-09-20T05:54:52+00:00",
+  "summary": {
+    "dpo": {
+      "n": 80,
+      "mean_tokens": 80.1,
+      "eos_rate": 0.725,
+      "mean_distinct_n": 0.9731503900196067,
+      "mean_logp_per_token": -1.3271193351597117,
+      "mean_implicit_reward": 0.6537286061048508
+    },
+    "sft": {
+      "n": 80,
+      "mean_tokens": 92.875,
+      "eos_rate": 0.525,
+      "mean_distinct_n": 0.977642598467544,
+      "mean_logp_per_token": -1.250688344394476,
+      "mean_implicit_reward": -0.6577810406684875
+    }
+  },
+  "completions": {
+    "dpo": [
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -141.13108825683594,
+        "logp_per_token": -1.1025866270065308,
+        "implicit_reward": 1.2212692260742188,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 68,
+        "emitted_eos": true,
+        "logp_own": -93.46654510498047,
+        "logp_per_token": -1.3745080162497127,
+        "implicit_reward": 0.863713836669922,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 53,
+        "emitted_eos": true,
+        "logp_own": -75.79627990722656,
+        "logp_per_token": -1.4301184888155956,
+        "implicit_reward": 1.1874954223632812,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 32,
+        "emitted_eos": true,
+        "logp_own": -57.35218811035156,
+        "logp_per_token": -1.7922558784484863,
+        "implicit_reward": 0.91336669921875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -120.04458618164062,
+        "logp_per_token": -0.9378483295440674,
+        "implicit_reward": 1.4635833740234376,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 56,
+        "emitted_eos": true,
+        "logp_own": -63.43882369995117,
+        "logp_per_token": -1.132836137499128,
+        "implicit_reward": 0.9114505767822266,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 10,
+        "emitted_eos": true,
+        "logp_own": -32.28965377807617,
+        "logp_per_token": -3.2289653778076173,
+        "implicit_reward": 0.38001251220703125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 33,
+        "emitted_eos": true,
+        "logp_own": -73.40937042236328,
+        "logp_per_token": -2.224526376435251,
+        "implicit_reward": 0.9543373107910157,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 68,
+        "emitted_eos": true,
+        "logp_own": -92.74744415283203,
+        "logp_per_token": -1.3639330022475298,
+        "implicit_reward": 1.1355682373046876,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 17,
+        "emitted_eos": true,
+        "logp_own": -29.921707153320312,
+        "logp_per_token": -1.7601004207835478,
+        "implicit_reward": 0.8311508178710938,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 55,
+        "emitted_eos": true,
+        "logp_own": -85.4094009399414,
+        "logp_per_token": -1.5528981989080255,
+        "implicit_reward": 0.4589836120605469,
+        "distinct_n": 0.9534883720930233
+      },
+      {
+        "n_tokens": 110,
+        "emitted_eos": true,
+        "logp_own": -137.11468505859375,
+        "logp_per_token": -1.246497136896307,
+        "implicit_reward": 0.1905548095703125,
+        "distinct_n": 0.898876404494382
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -52.81806182861328,
+        "logp_per_token": -0.41264110803604126,
+        "implicit_reward": 1.4249160766601563,
+        "distinct_n": 0.6395348837209303
+      },
+      {
+        "n_tokens": 59,
+        "emitted_eos": true,
+        "logp_own": -34.76397705078125,
+        "logp_per_token": -0.5892199500132416,
+        "implicit_reward": 1.1794822692871094,
+        "distinct_n": 0.9487179487179487
+      },
+      {
+        "n_tokens": 20,
+        "emitted_eos": true,
+        "logp_own": -26.27863883972168,
+        "logp_per_token": -1.313931941986084,
+        "implicit_reward": 0.3093547821044922,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 15,
+        "emitted_eos": true,
+        "logp_own": -15.72036075592041,
+        "logp_per_token": -1.048024050394694,
+        "implicit_reward": 0.1698927879333496,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 10,
+        "emitted_eos": true,
+        "logp_own": -14.406641960144043,
+        "logp_per_token": -1.4406641960144042,
+        "implicit_reward": 0.3132639884948731,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 10,
+        "emitted_eos": true,
+        "logp_own": -10.55066967010498,
+        "logp_per_token": -1.055066967010498,
+        "implicit_reward": 0.3251278877258301,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 121,
+        "emitted_eos": true,
+        "logp_own": -154.10971069335938,
+        "logp_per_token": -1.2736339726723915,
+        "implicit_reward": 0.2302886962890625,
+        "distinct_n": 0.8585858585858586
+      },
+      {
+        "n_tokens": 124,
+        "emitted_eos": true,
+        "logp_own": -204.8302459716797,
+        "logp_per_token": -1.6518568223522556,
+        "implicit_reward": 0.022528076171875,
+        "distinct_n": 0.9619047619047619
+      },
+      {
+        "n_tokens": 62,
+        "emitted_eos": true,
+        "logp_own": -87.06037902832031,
+        "logp_per_token": -1.4041996617471018,
+        "implicit_reward": 0.499365234375,
+        "distinct_n": 0.9090909090909091
+      },
+      {
+        "n_tokens": 63,
+        "emitted_eos": true,
+        "logp_own": -132.63796997070312,
+        "logp_per_token": -2.1053646027095736,
+        "implicit_reward": 1.059283447265625,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -138.22628784179688,
+        "logp_per_token": -1.079892873764038,
+        "implicit_reward": 0.3935882568359375,
+        "distinct_n": 0.9805825242718447
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -171.24420166015625,
+        "logp_per_token": -1.3378453254699707,
+        "implicit_reward": -0.011318969726562501,
+        "distinct_n": 0.9716981132075472
+      },
+      {
+        "n_tokens": 42,
+        "emitted_eos": true,
+        "logp_own": -66.6238784790039,
+        "logp_per_token": -1.5862828209286643,
+        "implicit_reward": 1.1794937133789063,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 82,
+        "emitted_eos": true,
+        "logp_own": -110.00347137451172,
+        "logp_per_token": -1.341505748469655,
+        "implicit_reward": 1.0386802673339843,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 105,
+        "emitted_eos": true,
+        "logp_own": -143.63653564453125,
+        "logp_per_token": -1.3679670061383928,
+        "implicit_reward": 1.3213272094726562,
+        "distinct_n": 0.8571428571428571
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -188.58892822265625,
+        "logp_per_token": -1.473351001739502,
+        "implicit_reward": 0.5245681762695312,
+        "distinct_n": 0.9900990099009901
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -162.52145385742188,
+        "logp_per_token": -1.2696988582611084,
+        "implicit_reward": 0.9399963378906251,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -170.3875732421875,
+        "logp_per_token": -1.3311529159545898,
+        "implicit_reward": 0.6920379638671875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 80,
+        "emitted_eos": true,
+        "logp_own": -83.97479248046875,
+        "logp_per_token": -1.0496849060058593,
+        "implicit_reward": 0.9777961730957032,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -61.5340461730957,
+        "logp_per_token": -0.4807347357273102,
+        "implicit_reward": 0.8971614837646484,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 65,
+        "emitted_eos": true,
+        "logp_own": -123.20260620117188,
+        "logp_per_token": -1.8954247107872597,
+        "implicit_reward": 0.37841873168945317,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 66,
+        "emitted_eos": true,
+        "logp_own": -123.49176025390625,
+        "logp_per_token": -1.8710872765743372,
+        "implicit_reward": 1.167156982421875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 97,
+        "emitted_eos": true,
+        "logp_own": -114.54904174804688,
+        "logp_per_token": -1.1809179561654317,
+        "implicit_reward": 0.2855255126953125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -149.28134155273438,
+        "logp_per_token": -1.1662604808807373,
+        "implicit_reward": 1.185150146484375,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 96,
+        "emitted_eos": true,
+        "logp_own": -34.57107162475586,
+        "logp_per_token": -0.3601153294245402,
+        "implicit_reward": 0.12397842407226563,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -67.64588165283203,
+        "logp_per_token": -0.5284834504127502,
+        "implicit_reward": 0.2589424133300781,
+        "distinct_n": 0.7951807228915663
+      },
+      {
+        "n_tokens": 111,
+        "emitted_eos": true,
+        "logp_own": -169.58660888671875,
+        "logp_per_token": -1.5278072872677364,
+        "implicit_reward": 2.223406982421875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 65,
+        "emitted_eos": true,
+        "logp_own": -90.66883850097656,
+        "logp_per_token": -1.3949052077073318,
+        "implicit_reward": 0.7662193298339844,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 39,
+        "emitted_eos": true,
+        "logp_own": -63.170501708984375,
+        "logp_per_token": -1.6197564540765224,
+        "implicit_reward": 0.5645919799804687,
+        "distinct_n": 0.96875
+      },
+      {
+        "n_tokens": 17,
+        "emitted_eos": true,
+        "logp_own": -33.761810302734375,
+        "logp_per_token": -1.9859888413373161,
+        "implicit_reward": 0.4640380859375,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -109.71620178222656,
+        "logp_per_token": -0.857157826423645,
+        "implicit_reward": 0.6544021606445313,
+        "distinct_n": 0.9493670886075949
+      },
+      {
+        "n_tokens": 49,
+        "emitted_eos": true,
+        "logp_own": -56.80347442626953,
+        "logp_per_token": -1.1592545801279497,
+        "implicit_reward": 0.7611946105957031,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 124,
+        "emitted_eos": true,
+        "logp_own": -194.20632934570312,
+        "logp_per_token": -1.5661800753685735,
+        "implicit_reward": 1.1782211303710939,
+        "distinct_n": 0.9357798165137615
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -211.30892944335938,
+        "logp_per_token": -1.6508510112762451,
+        "implicit_reward": 0.846044921875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -130.2020721435547,
+        "logp_per_token": -1.017203688621521,
+        "implicit_reward": 0.4059768676757813,
+        "distinct_n": 0.989010989010989
+      },
+      {
+        "n_tokens": 69,
+        "emitted_eos": true,
+        "logp_own": -87.06424713134766,
+        "logp_per_token": -1.2618006830630095,
+        "implicit_reward": 0.35024566650390626,
+        "distinct_n": 0.98
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -139.25546264648438,
+        "logp_per_token": -1.0879333019256592,
+        "implicit_reward": 0.6218475341796875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -147.7254180908203,
+        "logp_per_token": -1.1541048288345337,
+        "implicit_reward": 1.0845657348632813,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 25,
+        "emitted_eos": true,
+        "logp_own": -18.20014190673828,
+        "logp_per_token": -0.7280056762695313,
+        "implicit_reward": 0.3236888885498047,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 20,
+        "emitted_eos": true,
+        "logp_own": -9.181373596191406,
+        "logp_per_token": -0.45906867980957033,
+        "implicit_reward": 0.1653484344482422,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 104,
+        "emitted_eos": true,
+        "logp_own": -116.5295639038086,
+        "logp_per_token": -1.1204765759981596,
+        "implicit_reward": 0.996197509765625,
+        "distinct_n": 0.975609756097561
+      },
+      {
+        "n_tokens": 110,
+        "emitted_eos": true,
+        "logp_own": -151.75100708007812,
+        "logp_per_token": -1.379554609818892,
+        "implicit_reward": 0.7866424560546875,
+        "distinct_n": 0.9333333333333333
+      },
+      {
+        "n_tokens": 14,
+        "emitted_eos": true,
+        "logp_own": -31.991060256958008,
+        "logp_per_token": -2.2850757326398576,
+        "implicit_reward": 0.3340658187866211,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 11,
+        "emitted_eos": true,
+        "logp_own": -25.356861114501953,
+        "logp_per_token": -2.30516919222745,
+        "implicit_reward": 0.16787700653076174,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 76,
+        "emitted_eos": true,
+        "logp_own": -84.08793640136719,
+        "logp_per_token": -1.106420215807463,
+        "implicit_reward": 0.8458847045898438,
+        "distinct_n": 0.9833333333333333
+      },
+      {
+        "n_tokens": 120,
+        "emitted_eos": true,
+        "logp_own": -54.77962112426758,
+        "logp_per_token": -0.45649684270222984,
+        "implicit_reward": 0.08391838073730469,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 101,
+        "emitted_eos": true,
+        "logp_own": -117.01763153076172,
+        "logp_per_token": -1.1585904111956606,
+        "implicit_reward": 0.029911041259765625,
+        "distinct_n": 0.9886363636363636
+      },
+      {
+        "n_tokens": 94,
+        "emitted_eos": true,
+        "logp_own": -148.29315185546875,
+        "logp_per_token": -1.5775867218666888,
+        "implicit_reward": 0.18870849609375,
+        "distinct_n": 0.9871794871794872
+      },
+      {
+        "n_tokens": 19,
+        "emitted_eos": true,
+        "logp_own": -25.31301498413086,
+        "logp_per_token": -1.3322639465332031,
+        "implicit_reward": 0.2863283157348633,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 76,
+        "emitted_eos": true,
+        "logp_own": -98.73681640625,
+        "logp_per_token": -1.299168636924342,
+        "implicit_reward": 1.162823486328125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 43,
+        "emitted_eos": true,
+        "logp_own": -70.29609680175781,
+        "logp_per_token": -1.6347929488780886,
+        "implicit_reward": 0.162469482421875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -127.86129760742188,
+        "logp_per_token": -0.9989163875579834,
+        "implicit_reward": 0.13956298828125,
+        "distinct_n": 0.8415841584158416
+      },
+      {
+        "n_tokens": 101,
+        "emitted_eos": true,
+        "logp_own": -151.82553100585938,
+        "logp_per_token": -1.5032230792659345,
+        "implicit_reward": 0.6519866943359376,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 55,
+        "emitted_eos": true,
+        "logp_own": -109.47319030761719,
+        "logp_per_token": -1.990421641956676,
+        "implicit_reward": 0.6349334716796875,
+        "distinct_n": 0.9761904761904762
+      },
+      {
+        "n_tokens": 11,
+        "emitted_eos": true,
+        "logp_own": -6.42333459854126,
+        "logp_per_token": -0.5839395089582964,
+        "implicit_reward": 0.010267305374145509,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 17,
+        "emitted_eos": true,
+        "logp_own": -12.399455070495605,
+        "logp_per_token": -0.7293797100291532,
+        "implicit_reward": 0.15794401168823244,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 22,
+        "emitted_eos": true,
+        "logp_own": -25.911006927490234,
+        "logp_per_token": -1.177773042158647,
+        "implicit_reward": 0.49945735931396484,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 4,
+        "emitted_eos": true,
+        "logp_own": -9.976072311401367,
+        "logp_per_token": -2.494018077850342,
+        "implicit_reward": 0.1919428825378418,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -161.47293090820312,
+        "logp_per_token": -1.261507272720337,
+        "implicit_reward": 0.0017059326171875002,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 104,
+        "emitted_eos": true,
+        "logp_own": -170.94918823242188,
+        "logp_per_token": -1.6437421945425181,
+        "implicit_reward": 0.2467742919921875,
+        "distinct_n": 0.9883720930232558
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -148.85594177246094,
+        "logp_per_token": -1.162937045097351,
+        "implicit_reward": 1.1309921264648437,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -217.57766723632812,
+        "logp_per_token": -1.6998255252838135,
+        "implicit_reward": 1.3745025634765626,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 88,
+        "emitted_eos": true,
+        "logp_own": -104.74641418457031,
+        "logp_per_token": -1.190300161188299,
+        "implicit_reward": 0.99964599609375,
+        "distinct_n": 0.8589743589743589
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -132.6751251220703,
+        "logp_per_token": -1.0365244150161743,
+        "implicit_reward": 0.6608123779296875,
+        "distinct_n": 0.9811320754716981
+      },
+      {
+        "n_tokens": 92,
+        "emitted_eos": true,
+        "logp_own": -122.33772277832031,
+        "logp_per_token": -1.3297578562860903,
+        "implicit_reward": 1.2278579711914064,
+        "distinct_n": 0.9259259259259259
+      },
+      {
+        "n_tokens": 81,
+        "emitted_eos": true,
+        "logp_own": -124.7450180053711,
+        "logp_per_token": -1.5400619506835938,
+        "implicit_reward": 0.9877906799316407,
+        "distinct_n": 0.9857142857142858
+      },
+      {
+        "n_tokens": 111,
+        "emitted_eos": true,
+        "logp_own": -145.358154296875,
+        "logp_per_token": -1.3095329215934686,
+        "implicit_reward": 0.70875244140625,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -80.63864135742188,
+        "logp_per_token": -0.6299893856048584,
+        "implicit_reward": -0.17875213623046876,
+        "distinct_n": 0.8382352941176471
+      }
+    ],
+    "sft": [
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -72.82423400878906,
+        "logp_per_token": -0.5689393281936646,
+        "implicit_reward": -0.2261749267578125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 81,
+        "emitted_eos": true,
+        "logp_own": -77.66612243652344,
+        "logp_per_token": -0.9588410177348573,
+        "implicit_reward": 0.2817138671875,
+        "distinct_n": 0.9459459459459459
+      },
+      {
+        "n_tokens": 37,
+        "emitted_eos": true,
+        "logp_own": -79.8402328491211,
+        "logp_per_token": -2.1578441310573266,
+        "implicit_reward": -2.015341949462891,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -135.618896484375,
+        "logp_per_token": -1.0595226287841797,
+        "implicit_reward": -2.19644775390625,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 105,
+        "emitted_eos": true,
+        "logp_own": -111.82138061523438,
+        "logp_per_token": -1.064965529668899,
+        "implicit_reward": -0.5551223754882812,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 45,
+        "emitted_eos": true,
+        "logp_own": -51.28594970703125,
+        "logp_per_token": -1.1396877712673612,
+        "implicit_reward": -0.24737205505371096,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 50,
+        "emitted_eos": true,
+        "logp_own": -35.1976203918457,
+        "logp_per_token": -0.703952407836914,
+        "implicit_reward": -0.4015811920166016,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -222.75022888183594,
+        "logp_per_token": -1.7402361631393433,
+        "implicit_reward": -0.9003494262695313,
+        "distinct_n": 0.9893617021276596
+      },
+      {
+        "n_tokens": 82,
+        "emitted_eos": true,
+        "logp_own": -90.92039489746094,
+        "logp_per_token": -1.1087853036275723,
+        "implicit_reward": -1.061669921875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 14,
+        "emitted_eos": true,
+        "logp_own": -8.576665878295898,
+        "logp_per_token": -0.6126189913068499,
+        "implicit_reward": 0.11127662658691406,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -204.25,
+        "logp_per_token": -1.595703125,
+        "implicit_reward": -1.818309020996094,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 108,
+        "emitted_eos": true,
+        "logp_own": -166.26869201660156,
+        "logp_per_token": -1.5395249260796442,
+        "implicit_reward": -1.0896804809570313,
+        "distinct_n": 0.9764705882352941
+      },
+      {
+        "n_tokens": 125,
+        "emitted_eos": true,
+        "logp_own": -16.632125854492188,
+        "logp_per_token": -0.1330570068359375,
+        "implicit_reward": -0.3055788040161133,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -15.44526481628418,
+        "logp_per_token": -0.12066613137722015,
+        "implicit_reward": -0.12945289611816407,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 59,
+        "emitted_eos": true,
+        "logp_own": -59.74718475341797,
+        "logp_per_token": -1.0126641483630163,
+        "implicit_reward": -1.2189949035644532,
+        "distinct_n": 0.5609756097560976
+      },
+      {
+        "n_tokens": 14,
+        "emitted_eos": true,
+        "logp_own": -32.26377868652344,
+        "logp_per_token": -2.3045556204659596,
+        "implicit_reward": -0.14709396362304689,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 4,
+        "emitted_eos": true,
+        "logp_own": -11.641347885131836,
+        "logp_per_token": -2.910336971282959,
+        "implicit_reward": 0.13154954910278321,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 0,
+        "emitted_eos": true,
+        "logp_own": 0.0,
+        "logp_per_token": 0.0,
+        "implicit_reward": 0.0,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -123.38188934326172,
+        "logp_per_token": -0.9639210104942322,
+        "implicit_reward": -0.2812553405761719,
+        "distinct_n": 0.9090909090909091
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -149.9307403564453,
+        "logp_per_token": -1.171333909034729,
+        "implicit_reward": -1.1796218872070312,
+        "distinct_n": 0.9326923076923077
+      },
+      {
+        "n_tokens": 113,
+        "emitted_eos": true,
+        "logp_own": -17.436321258544922,
+        "logp_per_token": -0.15430372795172498,
+        "implicit_reward": -0.09356746673583985,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 119,
+        "emitted_eos": true,
+        "logp_own": -86.73806762695312,
+        "logp_per_token": -0.7288913245962447,
+        "implicit_reward": -0.8412261962890626,
+        "distinct_n": 0.95
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -128.1269073486328,
+        "logp_per_token": -1.0009914636611938,
+        "implicit_reward": -0.44920043945312504,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -106.25831604003906,
+        "logp_per_token": -0.8301430940628052,
+        "implicit_reward": -0.20480117797851563,
+        "distinct_n": 0.9803921568627451
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -123.56388092041016,
+        "logp_per_token": -0.9653428196907043,
+        "implicit_reward": -2.6760704040527346,
+        "distinct_n": 0.9578947368421052
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -157.83987426757812,
+        "logp_per_token": -1.233124017715454,
+        "implicit_reward": -2.2595611572265626,
+        "distinct_n": 0.9716981132075472
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -147.66049194335938,
+        "logp_per_token": -1.1535975933074951,
+        "implicit_reward": 0.10585479736328125,
+        "distinct_n": 0.9805825242718447
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -192.15362548828125,
+        "logp_per_token": -1.5012001991271973,
+        "implicit_reward": 0.09860534667968751,
+        "distinct_n": 0.98989898989899
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -127.69087219238281,
+        "logp_per_token": -0.9975849390029907,
+        "implicit_reward": -1.0623733520507812,
+        "distinct_n": 0.9861111111111112
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -86.88529968261719,
+        "logp_per_token": -0.6787914037704468,
+        "implicit_reward": -1.2678558349609377,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 77,
+        "emitted_eos": true,
+        "logp_own": -65.95635986328125,
+        "logp_per_token": -0.8565761021205357,
+        "implicit_reward": 0.7098159790039062,
+        "distinct_n": 0.9310344827586207
+      },
+      {
+        "n_tokens": 37,
+        "emitted_eos": true,
+        "logp_own": -29.958494186401367,
+        "logp_per_token": -0.8096890320649018,
+        "implicit_reward": 0.4898557662963867,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -219.23834228515625,
+        "logp_per_token": -1.7127995491027832,
+        "implicit_reward": -0.5379913330078125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 97,
+        "emitted_eos": true,
+        "logp_own": -153.5082550048828,
+        "logp_per_token": -1.5825593299472456,
+        "implicit_reward": 0.2725082397460938,
+        "distinct_n": 0.9393939393939394
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -149.7198486328125,
+        "logp_per_token": -1.1696863174438477,
+        "implicit_reward": -0.3192291259765625,
+        "distinct_n": 0.9904761904761905
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -123.45548248291016,
+        "logp_per_token": -0.9644959568977356,
+        "implicit_reward": -0.31689529418945317,
+        "distinct_n": 0.9238095238095239
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -166.1746826171875,
+        "logp_per_token": -1.2982397079467773,
+        "implicit_reward": 0.022491455078125,
+        "distinct_n": 0.9891304347826086
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -269.230224609375,
+        "logp_per_token": -2.103361129760742,
+        "implicit_reward": -0.0178070068359375,
+        "distinct_n": 0.9705882352941176
+      },
+      {
+        "n_tokens": 62,
+        "emitted_eos": true,
+        "logp_own": -99.51382446289062,
+        "logp_per_token": -1.6050616848853327,
+        "implicit_reward": -2.801280975341797,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -233.29066467285156,
+        "logp_per_token": -1.8225833177566528,
+        "implicit_reward": -3.963017272949219,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -226.541259765625,
+        "logp_per_token": -1.7698535919189453,
+        "implicit_reward": 0.18761901855468752,
+        "distinct_n": 0.9693877551020408
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -76.00082397460938,
+        "logp_per_token": -0.5937564373016357,
+        "implicit_reward": -1.4551124572753906,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 88,
+        "emitted_eos": true,
+        "logp_own": -124.02606964111328,
+        "logp_per_token": -1.4093871550126509,
+        "implicit_reward": 0.08495559692382813,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 76,
+        "emitted_eos": true,
+        "logp_own": -100.63201904296875,
+        "logp_per_token": -1.3241055137232731,
+        "implicit_reward": 0.271807861328125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -165.64735412597656,
+        "logp_per_token": -1.294119954109192,
+        "implicit_reward": -1.1525482177734376,
+        "distinct_n": 0.9782608695652174
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -158.82003784179688,
+        "logp_per_token": -1.240781545639038,
+        "implicit_reward": -0.7962554931640625,
+        "distinct_n": 0.9345794392523364
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -131.15036010742188,
+        "logp_per_token": -1.0246121883392334,
+        "implicit_reward": -0.7216552734375,
+        "distinct_n": 0.978494623655914
+      },
+      {
+        "n_tokens": 95,
+        "emitted_eos": true,
+        "logp_own": -84.91963195800781,
+        "logp_per_token": -0.8938908627158717,
+        "implicit_reward": -0.7954513549804688,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 65,
+        "emitted_eos": true,
+        "logp_own": -95.10032653808594,
+        "logp_per_token": -1.4630819467397838,
+        "implicit_reward": 0.009693145751953125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 47,
+        "emitted_eos": true,
+        "logp_own": -73.52468872070312,
+        "logp_per_token": -1.5643550791638963,
+        "implicit_reward": -0.22211761474609376,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 23,
+        "emitted_eos": true,
+        "logp_own": -45.04717254638672,
+        "logp_per_token": -1.9585727194081182,
+        "implicit_reward": -1.957738494873047,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 94,
+        "emitted_eos": true,
+        "logp_own": -58.398014068603516,
+        "logp_per_token": -0.621255468814931,
+        "implicit_reward": -2.2434215545654297,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 77,
+        "emitted_eos": true,
+        "logp_own": -85.54251861572266,
+        "logp_per_token": -1.1109418002041904,
+        "implicit_reward": -0.2659759521484375,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -143.6600341796875,
+        "logp_per_token": -1.1223440170288086,
+        "implicit_reward": -0.9021133422851563,
+        "distinct_n": 0.9888888888888889
+      },
+      {
+        "n_tokens": 4,
+        "emitted_eos": true,
+        "logp_own": -14.954778671264648,
+        "logp_per_token": -3.738694667816162,
+        "implicit_reward": -0.21378307342529299,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -119.9843978881836,
+        "logp_per_token": -0.9373781085014343,
+        "implicit_reward": -1.9031639099121094,
+        "distinct_n": 0.9903846153846154
+      },
+      {
+        "n_tokens": 53,
+        "emitted_eos": true,
+        "logp_own": -63.65121841430664,
+        "logp_per_token": -1.200966385175597,
+        "implicit_reward": 0.06967964172363282,
+        "distinct_n": 0.975609756097561
+      },
+      {
+        "n_tokens": 30,
+        "emitted_eos": true,
+        "logp_own": -48.9638557434082,
+        "logp_per_token": -1.6321285247802735,
+        "implicit_reward": -0.35009269714355473,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 42,
+        "emitted_eos": true,
+        "logp_own": -68.22492218017578,
+        "logp_per_token": -1.6244029090518044,
+        "implicit_reward": -0.5060218811035156,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -164.59381103515625,
+        "logp_per_token": -1.2858891487121582,
+        "implicit_reward": -0.4696990966796875,
+        "distinct_n": 0.9658119658119658
+      },
+      {
+        "n_tokens": 25,
+        "emitted_eos": true,
+        "logp_own": -42.28667449951172,
+        "logp_per_token": -1.6914669799804687,
+        "implicit_reward": 0.24778480529785157,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -184.25885009765625,
+        "logp_per_token": -1.4395222663879395,
+        "implicit_reward": 0.3239288330078125,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 97,
+        "emitted_eos": true,
+        "logp_own": -36.347023010253906,
+        "logp_per_token": -0.374711577425298,
+        "implicit_reward": -0.18252487182617189,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 35,
+        "emitted_eos": true,
+        "logp_own": -41.855987548828125,
+        "logp_per_token": -1.1958853585379465,
+        "implicit_reward": -0.179901123046875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -110.15739440917969,
+        "logp_per_token": -0.8606046438217163,
+        "implicit_reward": -0.4625740051269531,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -91.93531799316406,
+        "logp_per_token": -0.7182446718215942,
+        "implicit_reward": -0.022167968750000003,
+        "distinct_n": 0.864406779661017
+      },
+      {
+        "n_tokens": 53,
+        "emitted_eos": true,
+        "logp_own": -48.276451110839844,
+        "logp_per_token": -0.9108764360535819,
+        "implicit_reward": -1.398773193359375,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 86,
+        "emitted_eos": true,
+        "logp_own": -156.33056640625,
+        "logp_per_token": -1.8177972837936047,
+        "implicit_reward": -2.121893310546875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 4,
+        "emitted_eos": true,
+        "logp_own": -10.670844078063965,
+        "logp_per_token": -2.667711019515991,
+        "implicit_reward": -0.030051326751708986,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 25,
+        "emitted_eos": true,
+        "logp_own": -55.77186965942383,
+        "logp_per_token": -2.230874786376953,
+        "implicit_reward": -0.3088394165039063,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -219.1422119140625,
+        "logp_per_token": -1.7120485305786133,
+        "implicit_reward": -0.906903076171875,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 74,
+        "emitted_eos": true,
+        "logp_own": -90.70329284667969,
+        "logp_per_token": -1.2257201736037795,
+        "implicit_reward": -1.2147201538085939,
+        "distinct_n": 0.9298245614035088
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -100.91270446777344,
+        "logp_per_token": -0.78838050365448,
+        "implicit_reward": 0.2603416442871094,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -105.13455200195312,
+        "logp_per_token": -0.8213636875152588,
+        "implicit_reward": 0.24205474853515627,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -184.89614868164062,
+        "logp_per_token": -1.4445011615753174,
+        "implicit_reward": 0.40620269775390627,
+        "distinct_n": 0.9912280701754386
+      },
+      {
+        "n_tokens": 115,
+        "emitted_eos": true,
+        "logp_own": -177.429443359375,
+        "logp_per_token": -1.5428647248641305,
+        "implicit_reward": -0.43289031982421877,
+        "distinct_n": 0.93
+      },
+      {
+        "n_tokens": 73,
+        "emitted_eos": true,
+        "logp_own": -72.27749633789062,
+        "logp_per_token": -0.9901026895601456,
+        "implicit_reward": -1.7051559448242188,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -154.5633544921875,
+        "logp_per_token": -1.2075262069702148,
+        "implicit_reward": -2.9514617919921875,
+        "distinct_n": 0.8389830508474576
+      },
+      {
+        "n_tokens": 56,
+        "emitted_eos": true,
+        "logp_own": -74.18896484375,
+        "logp_per_token": -1.3248029436383928,
+        "implicit_reward": 0.0049537658691406255,
+        "distinct_n": 1.0
+      },
+      {
+        "n_tokens": 128,
+        "emitted_eos": false,
+        "logp_own": -159.15072631835938,
+        "logp_per_token": -1.2433650493621826,
+        "implicit_reward": -0.49724578857421875,
+        "distinct_n": 1.0
+      }
+    ]
+  },
+  "redaction": "Committed copy only: the 'prompts' field and every completion's 'text' are removed. All numeric fields are unmodified. The original is in results/, which is not committed."
+}

@@ -2,7 +2,7 @@
 
 > Created on: 12 June 2026
 >
-> Updated on: 28 July 2026
+> Updated on: 4 September 2026
 
 This note documents an implementation of the final stage of the classical reinforcement learning from human feedback (RLHF) pipeline ([Stiennon et al., 2020](#ref-stiennon2020); [Ouyang et al., 2022](#ref-ouyang2022)): proximal policy optimisation (PPO) of the supervised fine-tuning (SFT) policy against the trained reward model (RM), with prompts drawn from `Anthropic/hh-rlhf`.
 

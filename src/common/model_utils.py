@@ -45,8 +45,11 @@ class CacheCleaner(TrainerCallback):
     blocks rather than returning them, so the reserved high-water mark creeps up
     over a long run. Rather than clearing on a fixed cadence, we poll the (cheap)
     reserved-memory counter each step and empty the cache when it exceeds
-    THRESHOLD_RATIO of the device capacity, plus once after each eval. On CPU the
-    callback is inert. Shared by every training stage in the pipeline.
+    THRESHOLD_RATIO of the device capacity, plus once after each eval. The same
+    poll runs after every prediction step inside an evaluation loop, because a
+    long evaluation raises no step-end events and the pool would otherwise
+    grow unchecked through hundreds of batches. On CPU the callback is inert.
+    Shared by every training stage in the pipeline.
 
     A one-line memory report is printed at the trainer's ``logging_steps``
     cadence and whenever the cache is cleared, so it sits beside the loss lines.
@@ -214,6 +217,18 @@ class CacheCleaner(TrainerCallback):
         cadence = bool(args.logging_steps) and state.global_step % args.logging_steps == 0
         if cleared or cadence:
             self._report(backend, state, f"step {state.global_step}", cleared)
+
+    def on_prediction_step(self, args, state, control, **kwargs):
+        # Same threshold poll as on_step_end, inside the evaluation loop. No
+        # report here: an eval is hundreds of batches, and the post-eval line
+        # below carries the maxima.
+        backend = self._backend()
+        if backend is None:
+            return
+        self._update_maxima(backend)
+        reserved, capacity = self._reserved_and_capacity(backend)
+        if reserved > self.THRESHOLD_RATIO * capacity:
+            self._empty(backend)
 
     def on_evaluate(self, args, state, control, **kwargs):
         backend = self._backend()

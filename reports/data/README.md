@@ -2,26 +2,29 @@
 
 A committed snapshot of the small, human-readable artefacts the reports in `reports/` cite, so a reader can check a number without rerunning the pipeline.
 
-`results/` is not committed. It holds checkpoints, merged weights, TensorBoard event files, and GGUF exports, which run to tens of gigabytes and are regenerable from the pinned recipe (`configs/`, `uv.lock`, fixed seeds, one command per stage; see the README). Everything here is a copy of a file in `results/<stage>/`, with the same filename and stage subdirectory. The copies are byte-identical to their originals with one exception, noted below.
+`results/` is not committed. It holds checkpoints, merged weights, TensorBoard event files, and GGUF exports, which run to tens of gigabytes and are regenerable from the pinned recipe (`configs/`, `uv.lock`, fixed seeds, one command per stage; see the README). Everything here is a copy of a file in `results/<stage>/`, with the same filename and stage subdirectory. The copies are byte-identical to their originals with two exceptions, noted below. Two DPO file types are taken from inside `results/` rather than its top level: `trainer_state_<label>.json` from a run's last saved checkpoint directory, and the gate event file from `tb/<label>/`.
 
-**One file is redacted.** `ppo_rlhf_loop/completions_e71b6d13.md` contains model completions for three red-teaming prompts drawn from `Anthropic/hh-rlhf`. Where a policy complied with the request, that completion is replaced by a marker; prompts, scores, and refusing or deflecting completions are unmodified. The file carries its own redaction note, and PPO report Section 7 records the same. The unredacted original stays in `results/`, which is not committed.
+**Two files are redacted.** `ppo_rlhf_loop/completions_e71b6d13.md` contains model completions for three red-teaming prompts drawn from `Anthropic/hh-rlhf`. Where a policy complied with the request, that completion is replaced by a marker; prompts, scores, and refusing or deflecting completions are unmodified. The file carries its own redaction note, and PPO report Section 7 records the same. The unredacted original stays in `results/`, which is not committed. `dpo_lora_hh/generation_probe_75047d16_n40_k2_t0.7_r128.json` has its `prompts` field and every completion's `text` removed, since its prompts include red-teaming prompts and the DPO report cites only its numbers. Every numeric field is unmodified, and the file carries a `redaction` note.
 
 **This copy is manual.** Rerunning a stage updates `results/` and not this directory. After any rerun that changes a reported number, recopy the affected files and update the report in the same commit.
 
 ## What is here
 
-Files are keyed by run label: SFT `175462d7`, RM baseline `01772c12`, RM higher-capacity `56239d4c`, PPO `e71b6d13`. The SFT `0ac53a30` files are the Llama-3.2-3B comparison run of the SFT report's appendix.
+Files are keyed by run label: SFT `175462d7`, RM baseline `01772c12`, RM higher-capacity `56239d4c`, PPO `e71b6d13`. The SFT `0ac53a30` files are the Llama-3.2-3B comparison run of the SFT report's appendix. DPO files cover every run in the DPO report's Section 9: the completed runs `75047d16` (the selected arm), `c5d8a287`, `65674cc2` and `4e27ae3a`, and the stopped learning-rate trials `38139929`, `7bc05fb0` and `e7492fba`.
 
 | File pattern | Written by | Cited in |
 |---|---|---|
 | `eda_*_dataset.txt` | the stage's EDA script | Section 2 of each report |
 | `config_<label>.json` | the stage's training entry point | Section 4 of each report |
-| `metrics_<label>.json` | the stage's training entry point | Section 6 of the RM and PPO reports, Section 6 of the SFT report |
+| `metrics_<label>.json` | the stage's training entry point | Section 6 of the RM and PPO reports, Section 6 of the SFT report, Sections 7 and 9 of the DPO report |
 | `summary_*.{md,tsv}` | `src/analysis/aggregate_metrics.py` | run-to-run comparison tables |
 | `inference_*.json`, `comparison_base_sft_*.json` | the stage's inference probes | SFT report Section 7 |
 | `inference_adversarial_<label>.json` | `src/pipeline/rm_adversarial_probes.py` | RM report Sections 6.3 and 8.3 |
 | `checkpoint_sweep_<label>_n<prompts>_k<samples>.{md,json}` | `src/diagnostics/sweep_ppo_checkpoints.py` | PPO report Section 6.2 |
 | `completions_<label>.md` | `src/diagnostics/generate_ppo_completions.py` | PPO report Section 7 |
+| `trainer_state_<label>.json` | the Trainer, at a run's last saved checkpoint | DPO report Sections 7 and 9 (in-training trajectories) |
+| `tb/<label>/events.out.tfevents.*` | the TensorBoard callback, during the post-training gate | DPO report Tables 3, 6 and 7 (gate drift, i.e. the chosen and rejected rewards). Binary; read with `tensorboard`'s `EventAccumulator`. Superseded by the `gate_rewards_*` fields `metrics_<label>.json` gains on the next gate run |
+| `generation_probe_<label>_n<prompts>_k<samples>_t<temperature>_r<length>.json` | `src/diagnostics/probe_dpo_generations.py` | DPO report Section 7.2 |
 
 The sweep artefact name carries the evaluation settings as well as the run label, because two sweeps of the same run at different prompt or sample counts are not comparable and a name keyed on the label alone lets one silently overwrite the other. The JSON holds every per-prompt and per-sample score; the confidence intervals in the PPO report are computed from it.
 

@@ -15,23 +15,26 @@ The four policies are the two comparison arms plus two anchors: the SFT
 model shows how much preference optimisation added on top of instruction
 tuning, and the raw pre-SFT base model shows how much the entire pipeline
 added on top of the pre-trained model. Each policy also gets a sampled KL
-from pi_ref (the matched-KL axis of the comparison) and dependency-free
-diversity statistics (mode collapse is a way to buy margin without quality).
+from pi_ref (reported beside its scores so drift is visible; not used to
+choose or match arms) and dependency-free diversity statistics (mode
+collapse is a way to buy margin without quality).
 
 Inputs
 ------
 --ppo-label LABEL : PPO run; resolves to results/ppo_rlhf_loop/adapter_<label>.
 --dpo-label LABEL : DPO run; resolves to results/dpo_lora_hh/adapter_<label>.
 --num-prompts N   : distinct test-split prompts to evaluate (default 100).
+--samples-per-prompt K : completions per prompt per policy, averaged per
+    prompt before any comparison (default 4).
 --md-prompts N    : per-prompt sections written to the markdown file
     (default 20); the JSON always records every prompt.
 --batch-size N    : generation/scoring batch size (default 4).
 
 Outputs
 -------
-results/policy_comparison/comparison_ppo_<ppo_label>_dpo_<dpo_label>.json
+results/policy_comparison/comparison_ppo_<ppo_label>_dpo_<dpo_label>_n<prompts>_k<samples>.json
     -- run settings, per-policy aggregates, and every per-prompt record.
-results/policy_comparison/comparison_ppo_<ppo_label>_dpo_<dpo_label>.md
+results/policy_comparison/comparison_ppo_<ppo_label>_dpo_<dpo_label>_n<prompts>_k<samples>.md
     -- summary table, head-to-head win rates, judge-bias notes, and the
     first --md-prompts prompts with all four completions for reading.
 
@@ -46,6 +49,7 @@ sequence_logprob(...)       -- summed completion log-probability under a model.
 import argparse
 import json
 import os
+import random
 import statistics
 import sys
 from datetime import datetime, timezone
@@ -109,21 +113,26 @@ def main() -> None:
         args.num_prompts, ppo_config.seed,
     )
     console.print(
-        f"Comparing {POLICIES} on {len(prompts)} distinct test-split prompts "
-        f"(prompt cap {ppo_config.max_prompt_tokens}) on [bold]{device}[/bold] "
-        f"(temperature {ppo_config.temperature}, up to "
+        f"Comparing {POLICIES} on {len(prompts)} distinct test-split prompts x "
+        f"{args.samples_per_prompt} samples (prompt cap {ppo_config.max_prompt_tokens}) "
+        f"on [bold]{device}[/bold] (temperature {ppo_config.temperature}, up to "
         f"{ppo_config.response_length} new tokens)"
     )
+    # Each prompt is repeated K times; generation and judging treat the K
+    # copies as ordinary rows, and _aggregate folds them back per prompt.
+    expanded = [prompt for prompt in prompts for _ in range(args.samples_per_prompt)]
 
     completions, own_logprobs = _generate_all(
-        args, ppo_config, sft_path, tokenizer, prompts, device
+        args, ppo_config, sft_path, tokenizer, expanded, device
     )
     judges = _judge_all(
-        args, ppo_config, dpo_config, sft_path, tokenizer, prompts,
+        args, ppo_config, dpo_config, sft_path, tokenizer, expanded,
         completions, own_logprobs, device,
     )
 
-    records, aggregates = _aggregate(prompts, completions, own_logprobs, judges, dpo_config)
+    records, aggregates = _aggregate(
+        prompts, args.samples_per_prompt, completions, own_logprobs, judges, dpo_config, ppo_config.seed
+    )
     json_path, md_path = _save(records, aggregates, args, ppo_config, dpo_config)
     _print_summary(aggregates)
     console.print(f"Wrote [bold]{json_path}[/bold] and [bold]{md_path}[/bold]")
@@ -144,6 +153,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="PPO run label; resolves to results/ppo_rlhf_loop/adapter_<label>.")
     parser.add_argument("--dpo-label", required=True,
                         help="DPO run label; resolves to results/dpo_lora_hh/adapter_<label>.")
+    parser.add_argument("--samples-per-prompt", type=int, default=4,
+                        help="Completions sampled per prompt per policy; scores are averaged "
+                             "per prompt before any comparison (default 4, as the PPO "
+                             "checkpoint sweep). One sample is too noisy to report.")
     parser.add_argument("--num-prompts", type=int, default=100,
                         help="Distinct test-split prompts to evaluate (default 100).")
     parser.add_argument("--md-prompts", type=int, default=20,
@@ -198,20 +211,27 @@ def select_test_prompts(
     trained on: PPO and DPO both trained on (different views of) the train
     split, and the RM's gate merely evaluated on the test split. Prompts are
     deduplicated first, because HH-RLHF pairs several responses to each
-    prompt and duplicate prompts would silently weight the comparison, then
-    filtered with PPO's own prompt cap so every policy generates under the
-    length regime PPO was trained for, then sampled with a seeded shuffle.
+    prompt and duplicate prompts would silently weight the comparison. HH-RLHF
+    also reuses a small number of prompts across splits with different
+    responses; those prompts were seen during training even though their
+    judged responses were not, so they are excluded to keep the claim above
+    literal. The remainder is filtered
+    with PPO's own prompt cap so every policy generates under the length
+    regime PPO was trained for, then sampled with a seeded shuffle.
     """
     dataset = load_dataset(dataset_name, split="test")
+    train_prompts = {extract_prompt(text) for text in load_dataset(dataset_name, split="train")["chosen"]}
     distinct = sorted({extract_prompt(text) for text in dataset["chosen"]})
-    lengths = tokenizer(distinct)["input_ids"]
-    admissible = [p for p, ids in zip(distinct, lengths) if len(ids) <= max_prompt_tokens]
+    unseen = [p for p in distinct if p not in train_prompts]
+    lengths = tokenizer(unseen)["input_ids"]
+    admissible = [p for p, ids in zip(unseen, lengths) if len(ids) <= max_prompt_tokens]
     generator = torch.Generator().manual_seed(seed)
     order = torch.randperm(len(admissible), generator=generator).tolist()
     selected = [admissible[i] for i in order[: min(num_prompts, len(admissible))]]
     console.print(
         f"Test split: {len(dataset):,} pairs -> {len(distinct):,} distinct prompts "
-        f"-> {len(admissible):,} within the prompt cap -> {len(selected)} sampled"
+        f"-> {len(unseen):,} not in the training split -> {len(admissible):,} within "
+        f"the prompt cap -> {len(selected)} sampled"
     )
     return selected
 
@@ -440,49 +460,89 @@ def _rm_score(
 # ---------------------------------------------------------------------------
 
 def _aggregate(
-    prompts: list[str], completions: dict[str, list[dict]],
+    prompts: list[str], samples_per_prompt: int, completions: dict[str, list[dict]],
     own_logprobs: dict[str, list[float]], judges: dict[str, dict[str, list[float]]],
-    dpo_config: DPOTrainingConfig,
+    dpo_config: DPOTrainingConfig, seed: int,
 ) -> tuple[list[dict], dict]:
-    """Fold the raw passes into per-prompt records and per-policy aggregates."""
+    """Fold the raw passes into per-prompt records and per-policy aggregates.
+
+    Rows arrive K per prompt (K = samples_per_prompt, consecutive). Each
+    record keeps every sample and carries the per-prompt MEAN of each score
+    at the top level, which is what every comparison below uses: averaging
+    the sampling noise out per prompt before comparing arms is the same
+    correction the PPO checkpoint sweep needed, and win rates on single
+    draws mostly measure that noise. The first sample is the one shown in
+    the markdown reading section.
+    """
+    K = samples_per_prompt
     records = []
     for i, prompt in enumerate(prompts):
         record = {"prompt": prompt}
         for name in POLICIES:
+            samples = []
+            for j in range(i * K, (i + 1) * K):
+                samples.append({
+                    "completion":      completions[name][j]["text"],
+                    "n_tokens":        completions[name][j]["n_tokens"],
+                    "emitted_eos":     completions[name][j]["emitted_eos"],
+                    "rm_score":        judges[name]["rm_score"][j],
+                    "implicit_reward": dpo_config.beta
+                                       * (judges[name]["dpo_logprob"][j] - judges[name]["ref_logprob"][j]),
+                    "kl_from_ref":     own_logprobs[name][j] - judges[name]["ref_logprob"][j],
+                })
             record[name] = {
-                "completion":      completions[name][i]["text"],
-                "n_tokens":        completions[name][i]["n_tokens"],
-                "emitted_eos":     completions[name][i]["emitted_eos"],
-                "rm_score":        judges[name]["rm_score"][i],
-                "implicit_reward": dpo_config.beta
-                                   * (judges[name]["dpo_logprob"][i] - judges[name]["ref_logprob"][i]),
-                "kl_from_ref":     own_logprobs[name][i] - judges[name]["ref_logprob"][i],
+                "completion":      samples[0]["completion"],
+                "n_tokens":        statistics.mean(x["n_tokens"] for x in samples),
+                "emitted_eos":     all(x["emitted_eos"] for x in samples),
+                "eos_rate":        statistics.mean(1.0 if x["emitted_eos"] else 0.0 for x in samples),
+                "rm_score":        statistics.mean(x["rm_score"] for x in samples),
+                "implicit_reward": statistics.mean(x["implicit_reward"] for x in samples),
+                "kl_from_ref":     statistics.mean(x["kl_from_ref"] for x in samples),
+                "samples":         samples,
             }
         records.append(record)
 
-    aggregates = {}
+    aggregates = {"samples_per_prompt": K}
     for name in POLICIES:
         rows = [record[name] for record in records]
-        texts = [row["completion"] for row in rows]
+        texts = [x["completion"] for row in rows for x in row["samples"]]
         aggregates[name] = {
+            # Means over prompts of per-prompt means; the sd is across prompts.
             "rm_score_mean":        statistics.mean(row["rm_score"] for row in rows),
             "rm_score_sd":          statistics.pstdev(row["rm_score"] for row in rows),
             "implicit_reward_mean": statistics.mean(row["implicit_reward"] for row in rows),
             "kl_from_ref_mean":     statistics.mean(row["kl_from_ref"] for row in rows),
             "response_tokens_mean": statistics.mean(row["n_tokens"] for row in rows),
-            "missing_eos_rate":     statistics.mean(0.0 if row["emitted_eos"] else 1.0 for row in rows),
+            "missing_eos_rate":     statistics.mean(1.0 - row["eos_rate"] for row in rows),
             "distinct_2":           _distinct_n(texts, 2),
         }
-    # Head-to-head win rates on the two comparison arms, under both judges.
+    # Head-to-head on the two comparison arms, under both judges, on the
+    # per-prompt means: win rate, paired mean gain, and a bootstrap interval.
+    rm_diffs  = [r["ppo"]["rm_score"] - r["dpo"]["rm_score"] for r in records]
+    dpo_diffs = [r["ppo"]["implicit_reward"] - r["dpo"]["implicit_reward"] for r in records]
     aggregates["head_to_head"] = {
-        "rm_judge_ppo_wins":  statistics.mean(
-            1.0 if r["ppo"]["rm_score"] > r["dpo"]["rm_score"] else 0.0 for r in records
-        ),
-        "dpo_judge_ppo_wins": statistics.mean(
-            1.0 if r["ppo"]["implicit_reward"] > r["dpo"]["implicit_reward"] else 0.0 for r in records
-        ),
+        "rm_judge_ppo_wins":       statistics.mean(1.0 if d > 0 else 0.0 for d in rm_diffs),
+        "dpo_judge_ppo_wins":      statistics.mean(1.0 if d > 0 else 0.0 for d in dpo_diffs),
+        "rm_paired_gain_ppo":      statistics.mean(rm_diffs),
+        "rm_paired_gain_ppo_ci95": _bootstrap_ci(rm_diffs, seed),
+        "dpo_paired_gain_ppo":     statistics.mean(dpo_diffs),
+        "dpo_paired_gain_ppo_ci95": _bootstrap_ci(dpo_diffs, seed),
     }
     return records, aggregates
+
+
+def _bootstrap_ci(values: list[float], seed: int, resamples: int = 2000) -> list[float]:
+    """95% percentile bootstrap interval for the mean of paired differences.
+
+    The same estimator the PPO checkpoint sweep reports, so the two
+    comparisons read alike: an interval containing zero is not resolvable.
+    """
+    rng = random.Random(seed)
+    n = len(values)
+    means = sorted(
+        statistics.mean(values[rng.randrange(n)] for _ in range(n)) for _ in range(resamples)
+    )
+    return [means[int(0.025 * resamples)], means[int(0.975 * resamples) - 1]]
 
 
 def _distinct_n(texts: list[str], n: int) -> float:
@@ -501,7 +561,10 @@ def _distinct_n(texts: list[str], n: int) -> float:
 def _save(records, aggregates, args, ppo_config, dpo_config) -> tuple[str, str]:
     """Write the JSON record and the markdown summary. Returns both paths."""
     os.makedirs(OUTPUT_PATH, exist_ok=True)
-    stem = f"comparison_ppo_{args.ppo_label}_dpo_{args.dpo_label}"
+    # The stem carries the evaluation settings, as the PPO sweep artefact does,
+    # so comparisons at different prompt or sample counts never overwrite.
+    stem = (f"comparison_ppo_{args.ppo_label}_dpo_{args.dpo_label}"
+            f"_n{len(records)}_k{args.samples_per_prompt}")
 
     payload = {
         "ppo_label":       args.ppo_label,
@@ -512,6 +575,7 @@ def _save(records, aggregates, args, ppo_config, dpo_config) -> tuple[str, str]:
         "ppo_kl_coef":     ppo_config.kl_coef,
         "dpo_beta":        dpo_config.beta,
         "num_prompts":     len(records),
+        "samples_per_prompt": args.samples_per_prompt,
         "temperature":     ppo_config.temperature,
         "response_length": ppo_config.response_length,
         "seed":            ppo_config.seed,
@@ -537,8 +601,9 @@ def _markdown_lines(records, aggregates, args, ppo_config, dpo_config) -> list[s
         "",
         f"Generated by `src/diagnostics/compare_policies.py` on {len(records)} "
         f"distinct HH-RLHF test-split prompts (unseen by every stage), "
-        f"temperature {ppo_config.temperature}, up to {ppo_config.response_length} "
-        f"new tokens, seed {ppo_config.seed}. PPO kl_coef "
+        f"{aggregates['samples_per_prompt']} samples per prompt averaged before any "
+        f"comparison, temperature {ppo_config.temperature}, up to "
+        f"{ppo_config.response_length} new tokens, seed {ppo_config.seed}. PPO kl_coef "
         f"{ppo_config.kl_coef}; DPO beta {dpo_config.beta}.",
         "",
         "## Summary",
@@ -557,9 +622,14 @@ def _markdown_lines(records, aggregates, args, ppo_config, dpo_config) -> list[s
         )
     lines += [
         "",
-        f"Head-to-head (PPO vs DPO): the RM judge prefers PPO on "
-        f"{100 * h2h['rm_judge_ppo_wins']:.0f}% of prompts; the DPO implicit-reward "
-        f"judge prefers PPO on {100 * h2h['dpo_judge_ppo_wins']:.0f}%.",
+        f"Head-to-head (PPO vs DPO, per-prompt means): the RM judge prefers PPO on "
+        f"{100 * h2h['rm_judge_ppo_wins']:.0f}% of prompts, paired gain "
+        f"{h2h['rm_paired_gain_ppo']:+.3f} (95% bootstrap CI "
+        f"{h2h['rm_paired_gain_ppo_ci95'][0]:+.3f} to {h2h['rm_paired_gain_ppo_ci95'][1]:+.3f}); "
+        f"the DPO implicit-reward judge prefers PPO on {100 * h2h['dpo_judge_ppo_wins']:.0f}%, "
+        f"paired gain {h2h['dpo_paired_gain_ppo']:+.3f} (CI "
+        f"{h2h['dpo_paired_gain_ppo_ci95'][0]:+.3f} to {h2h['dpo_paired_gain_ppo_ci95'][1]:+.3f}). "
+        f"An interval containing zero is not resolvable at this prompt count.",
         "",
         "## How to read this",
         "",
@@ -572,12 +642,16 @@ def _markdown_lines(records, aggregates, args, ppo_config, dpo_config) -> list[s
         "base-model text (the RM was initialised from the SFT model and trained on "
         "HH-RLHF dialogue), so read the base row's completions, not its numbers.",
         "- KL from pi_ref is a sampled per-response total under each policy's own "
-        "completions; compare the PPO and DPO rows at similar KL (or sweep DPO's "
-        "beta until they match) before comparing their rewards. The SFT row's KL "
-        "is zero by construction; the base row's is not a drift measure (it "
-        "drifted before pi_ref existed) and is reported only for completeness.",
+        "completions, reported so that drift is visible next to reward. It is "
+        "not a selection criterion: the DPO arm is fixed in advance at the "
+        "default beta. The SFT row's KL is zero by construction; the base row's "
+        "is not a drift measure (it drifted before pi_ref existed) and is "
+        "reported only for completeness.",
         "- Low distinct-2 or a high missing-EOS rate flags margin bought with "
         "degeneracy rather than quality.",
+        "- Every score in the summary and the head-to-head is a per-prompt mean over "
+        f"{aggregates['samples_per_prompt']} samples; the reading sections show the "
+        "first sample of each policy, with that prompt's mean scores in the heading.",
         "",
     ]
     for index, record in enumerate(records[: args.md_prompts], start=1):
@@ -622,7 +696,9 @@ def _print_summary(aggregates: dict) -> None:
         )
     h2h = aggregates["head_to_head"]
     console.print(
-        f"Head-to-head PPO wins: RM judge [bold]{100 * h2h['rm_judge_ppo_wins']:.0f}%[/bold], "
+        f"Head-to-head PPO wins: RM judge [bold]{100 * h2h['rm_judge_ppo_wins']:.0f}%[/bold] "
+        f"(paired gain {h2h['rm_paired_gain_ppo']:+.3f}, CI {h2h['rm_paired_gain_ppo_ci95'][0]:+.3f} "
+        f"to {h2h['rm_paired_gain_ppo_ci95'][1]:+.3f}), "
         f"DPO judge [bold]{100 * h2h['dpo_judge_ppo_wins']:.0f}%[/bold]"
     )
 
@@ -636,7 +712,7 @@ if __name__ == "__main__":
 # =============================================================================
 # - Scope: the standing evaluation for the PPO-vs-DPO comparison (DPO report
 #   Section 6), not a pipeline stage. It takes two completed run labels and
-#   writes comparison_ppo_<ppo>_dpo_<dpo>.{json,md} under
+#   writes comparison_ppo_<ppo>_dpo_<dpo>_n<prompts>_k<samples>.{json,md} under
 #   results/policy_comparison/.
 # - Prompts: distinct prompts from the dedicated test split, which no stage
 #   trained on (PPO's old train-carved eval prompts sit inside DPO's training
@@ -653,8 +729,9 @@ if __name__ == "__main__":
 #   both score all four policies; the markdown states the bias explicitly and
 #   defers disagreements to an external judge.
 # - KL from pi_ref: summed per-response log-ratio of each policy's own
-#   completions under itself vs under the SFT reference -- the matched-KL
-#   axis. Sums, not means, to match how both training objectives price drift.
+#   completions under itself vs under the SFT reference, reported beside the
+#   scores as a drift column. Sums, not means, to match how both training
+#   objectives price drift.
 # - Log-prob mechanics: teacher-forcing passes over re-tokenised
 #   prompt+completion text (the repo's established scoring convention), with
 #   completion positions located from the attention mask under left padding

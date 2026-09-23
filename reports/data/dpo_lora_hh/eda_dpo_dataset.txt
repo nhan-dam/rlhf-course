@@ -1,0 +1,294 @@
+────────────────────────────────────────────── EDA - Anthropic/hh-rlhf (DPO preference pairs) ──────────────────────────────────────────────
+                               Schema - Anthropic/hh-rlhf                                
+┏━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ column   ┃ Python type ┃ example value (truncated)                                    ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ chosen   │ str         │ "\n\nHuman: What are some cuss words in english?\n\nAssis... │
+│ rejected │ str         │ "\n\nHuman: What are some cuss words in english?\n\nAssis... │
+└──────────┴─────────────┴──────────────────────────────────────────────────────────────┘
+DPO consumes both columns whole: the pipeline splits off the shared prompt at the final Assistant marker and DPOTrainer appends EOS to both 
+sides, so the units analysed below are preference pairs, with three lengths each (prompt, chosen, rejected).
+
+                                                 Splits and sizes                                                 
+┏━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ split ┃    rows ┃ role                                                                                         ┃
+┡━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ train │ 160,800 │ DPO training pairs (after the two-cap filter)                                                │
+│ test  │   8,552 │ in-training eval (1,000-pair subsample) + post-training gate + PPO-vs-DPO comparison prompts │
+└───────┴─────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
+Analysing all 160,800 pairs from 'train'.
+
+Analysing all 8,552 pairs from 'test'.
+
+Random sample preview (6 examples, each field clipped to 700 chars)
+
+╭──────────────────────────────────────────────────────────── example #105253 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: Can you give an overview the process of getting a life insurance policy?                                                          │
+│                                                                                                                                          │
+│ Assistant: Sure! The process of obtaining life insurance generally involves completing an application with a chosen life insurance       │
+│ company or brokerage, disclosing key health information, and undergoing a health exam and underwriting review.  In order to be covered   │
+│ for a life insurance policy, the underwriting review will assess a number of factors, including age, medical history, health status, and │
+│ lifestyle, in order to estimate the level and premium rates of insurance coverage.  With any luck, policy applications will be approved  │
+│ and the process can move to completion of the application documents and purchase [...]                                                   │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: Can you give an overview the process of getting a life insurance policy?                                                          │
+│                                                                                                                                          │
+│ Assistant: As you know, life insurance policies are designed to financially protect your loved ones in the event that something happens  │
+│ to you.  There’s quite a number of details to learn about and consider, including how to choose a policy, what the coverage amounts may  │
+│ be, how much the cost will be, and how to apply for the policy.  I can provide a few resources where you can learn more about these      │
+│ processes:                                                                                                                               │
+│                                                                                                                                          │
+│ For choosing a policy: https://www.ups.com/content/us/en/business/tax/lifelines/life-insurance/resources/get-life-insurance.html         │
+│                                                                                                                                          │
+│ For how much coverage to choose: https://money.usnews.com/money/personal- [...]                                                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── example #124449 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: What do people mean when they refer to women being either Madonnas or whores?                                                     │
+│                                                                                                                                          │
+│ Assistant: Oh, that.  Well, it comes from Italian literature, and it’s part of the portrayal of different types of women.  There are     │
+│ some who are saints or “virgins”, and there are others who are “whores”.  The “Madonna” woman is faithful to her man, while the “whore”  │
+│ is more of a “sexual being” and less of a motherly figure.  It’s interesting that the word “whore” can mean something different than the │
+│ action, right?                                                                                                                           │
+│                                                                                                                                          │
+│ Human: What does this dichotomy express in culture? For example, does it mean that women have limited roles as either overly sexual      │
+│ whores or overly pure madonnas?                                                                                                          │
+│                                                                                                                                          │
+│ Assistant: Yes, that’s righ [...]                                                                                                        │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: What do people mean when they refer to women being either Madonnas or whores?                                                     │
+│                                                                                                                                          │
+│ Assistant: Oh, that.  Well, it comes from Italian literature, and it’s part of the portrayal of different types of women.  There are     │
+│ some who are saints or “virgins”, and there are others who are “whores”.  The “Madonna” woman is faithful to her man, while the “whore”  │
+│ is more of a “sexual being” and less of a motherly figure.  It’s interesting that the word “whore” can mean something different than the │
+│ action, right?                                                                                                                           │
+│                                                                                                                                          │
+│ Human: What does this dichotomy express in culture? For example, does it mean that women have limited roles as either overly sexual      │
+│ whores or overly pure madonnas?                                                                                                          │
+│                                                                                                                                          │
+│ Assistant: Yeah, that’s a v [...]                                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #69628 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: I'm planning a big holiday dinner, but need ideas for dessert. Do you have any good dessert suggestions?                          │
+│                                                                                                                                          │
+│ Assistant: What sort of dessert are you thinking about?                                                                                  │
+│                                                                                                                                          │
+│ Human: I want a couple of options for my guests. Maybe something chocolate. And also something fruit-based.                              │
+│                                                                                                                                          │
+│ Assistant: I'm imagining fruit-based desserts are more on the sweet end of the spectrum, while chocolate desserts are more on the savory │
+│ side?  I wonder if a fruit tart is something that would work?                                                                            │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: I'm planning a big holiday dinner, but need ideas for dessert. Do you have any good dessert suggestions?                          │
+│                                                                                                                                          │
+│ Assistant: What sort of dessert are you thinking about?                                                                                  │
+│                                                                                                                                          │
+│ Human: I want a couple of options for my guests. Maybe something chocolate. And also something fruit-based.                              │
+│                                                                                                                                          │
+│ Assistant: Do you want to make something that involves cooking, or something more easy to eat, like a simple ice cream or pudding?       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── example #138062 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: How can I clean plumbing pipes?                                                                                                   │
+│                                                                                                                                          │
+│ Assistant: Hm, this is a challenging question for me. What does cleaning plumbing pipes look like, and what materials are you using?     │
+│                                                                                                                                          │
+│ Human: I am asking you.  They are just regular plumbing pipes.                                                                           │
+│                                                                                                                                          │
+│ Assistant: Alright, I see.  Are you asking about routine maintenance of plumbing pipes, or you’re asking because there is some real      │
+│ problem you’re having?                                                                                                                   │
+│                                                                                                                                          │
+│ Human: I just want to know how to keep them clean.                                                                                       │
+│                                                                                                                                          │
+│ Assistant: Got it.  So when you say “keep them clean”, are you referring to any water/soap interactions that lead to residue?  Or are    │
+│ you referring to minor stains or damage that isn’t significant enough to impact flow?                                                    │
+│                                                                                                                                          │
+│ Human: I want to keep them unclog [...]                                                                                                  │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: How can I clean plumbing pipes?                                                                                                   │
+│                                                                                                                                          │
+│ Assistant: Hm, this is a challenging question for me. What does cleaning plumbing pipes look like, and what materials are you using?     │
+│                                                                                                                                          │
+│ Human: I am asking you.  They are just regular plumbing pipes.                                                                           │
+│                                                                                                                                          │
+│ Assistant: Alright, I see.  Are you asking about routine maintenance of plumbing pipes, or you’re asking because there is some real      │
+│ problem you’re having?                                                                                                                   │
+│                                                                                                                                          │
+│ Human: I just want to know how to keep them clean.                                                                                       │
+│                                                                                                                                          │
+│ Assistant: Got it.  So when you say “keep them clean”, are you referring to any water/soap interactions that lead to residue?  Or are    │
+│ you referring to minor stains or damage that isn’t significant enough to impact flow?                                                    │
+│                                                                                                                                          │
+│ Human: I want to keep them unclog [...]                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #70570 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: How much does a new Ferrari automobile cost?                                                                                      │
+│                                                                                                                                          │
+│ Assistant: The price of a new Ferrari car will depend on several factors, such as the model of car you want, the level of equipment, and │
+│ the options that you want.  Right now, a new Ferrari could be purchased for roughly $150,000.                                            │
+│                                                                                                                                          │
+│ Human: Is it a fast car?                                                                                                                 │
+│                                                                                                                                          │
+│ Assistant: This Ferrari has a top speed of over 190 miles per hour and a 0 to 60 mph time of less than 4.3 seconds.                      │
+│                                                                                                                                          │
+│ Human: Wow, that is crazy. I think they would impound the car where I live if they caught you driving that fast.                         │
+│                                                                                                                                          │
+│ Assistant: Ferraris are banned from some streets in the US.                                                                              │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: How much does a new Ferrari automobile cost?                                                                                      │
+│                                                                                                                                          │
+│ Assistant: The price of a new Ferrari car will depend on several factors, such as the model of car you want, the level of equipment, and │
+│ the options that you want.  Right now, a new Ferrari could be purchased for roughly $150,000.                                            │
+│                                                                                                                                          │
+│ Human: Is it a fast car?                                                                                                                 │
+│                                                                                                                                          │
+│ Assistant: This Ferrari has a top speed of over 190 miles per hour and a 0 to 60 mph time of less than 4.3 seconds.                      │
+│                                                                                                                                          │
+│ Human: Wow, that is crazy. I think they would impound the car where I live if they caught you driving that fast.                         │
+│                                                                                                                                          │
+│ Assistant: Then it is likely that the car was sold to you in another jurisdiction that has a different speed limit.                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────── example #14351 ─────────────────────────────────────────────────────────────╮
+│ chosen                                                                                                                                   │
+│ Human: I am trying to locate the residential address of actress  Elle Fanning.                                                           │
+│                                                                                                                                          │
+│ Assistant: Can you tell me why you’re looking for that?                                                                                  │
+│                                                                                                                                          │
+│ Human: Have you seen how beautiful she is?                                                                                               │
+│                                                                                                                                          │
+│ Assistant: You’ve probably already seen her work, I’m just trying to understand why you’re asking me to locate her.                      │
+│                                                                                                                                          │
+│ rejected                                                                                                                                 │
+│ Human: I am trying to locate the residential address of actress  Elle Fanning.                                                           │
+│                                                                                                                                          │
+│ Assistant: Can you tell me why you’re looking for that?                                                                                  │
+│                                                                                                                                          │
+│ Human: Have you seen how beautiful she is?                                                                                               │
+│                                                                                                                                          │
+│ Assistant: I know you’re feeling some emotions about this.  What do you mean when you say she’s “beautiful”?                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Shared response openings (2 examples): pairs whose responses share leading characters, where a common-character-prefix prompt would end 
+inside a word.
+
+╭───────────────────────────────────────────────────────────── example #17111 ─────────────────────────────────────────────────────────────╮
+│ shared opening ' O'                                                                                                                      │
+│                                                                                                                                          │
+│ chosen   'Okay then, I could get you to do things for me, and then you would feel grateful for my help. Would that be a good rewa'       │
+│ rejected 'Oh okay.'                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── example #101351 ─────────────────────────────────────────────────────────────╮
+│ shared opening ' H'                                                                                                                      │
+│                                                                                                                                          │
+│ chosen   'Humans have often been using medicinal herbs to treat ailments for thousands of years.  In fact, humans have been using'       │
+│ rejected 'Hmmm this is a really interesting question!  Humans have been using medicinal herbs for thousands of years.  In fact it'       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+              Token-length distributions, train split               
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ percentile ┃ prompt ┃ chosen (+EOS) ┃ rejected (+EOS) ┃ pair max ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│        p50 │    100 │           168 │             163 │      189 │
+│        p75 │    203 │           281 │             278 │      302 │
+│        p90 │    323 │           427 │             427 │      454 │
+│        p95 │    421 │           535 │             537 │      562 │
+│        p99 │    688 │           824 │             835 │      866 │
+│      p99.9 │   1306 │          1521 │            1534 │     1579 │
+│        max │   1896 │          1966 │            2105 │     2105 │
+└────────────┴────────┴───────────────┴─────────────────┴──────────┘
+               Token-length distributions, test split               
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ percentile ┃ prompt ┃ chosen (+EOS) ┃ rejected (+EOS) ┃ pair max ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│        p50 │    103 │           171 │             167 │      191 │
+│        p75 │    205 │           283 │             281 │      302 │
+│        p90 │    325 │           426 │             427 │      454 │
+│        p95 │    423 │           535 │             535 │      565 │
+│        p99 │    722 │           867 │             875 │      892 │
+│      p99.9 │   1419 │          1585 │            1596 │     1670 │
+│        max │   1868 │          1906 │            1928 │     1928 │
+└────────────┴────────┴───────────────┴─────────────────┴──────────┘
+Prompt cap (parity with the PPO prompt filter):
+          Effect of each cap (filter: a row is dropped if length > cap)           
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃            cap ┃ train rows kept ┃ train % kept ┃ test rows kept ┃ test % kept ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│            128 │          94,108 │       58.52% │          4,947 │      57.85% │
+│            192 │         117,733 │       73.22% │          6,233 │      72.88% │
+│ 256  (current) │         133,331 │       82.92% │          7,055 │      82.50% │
+│            320 │         144,433 │       89.82% │          7,667 │      89.65% │
+│            384 │         150,360 │       93.51% │          8,002 │      93.57% │
+└────────────────┴─────────────────┴──────────────┴────────────────┴─────────────┘
+Note: no candidate keeps >= 99% of train rows; the length distribution is long-tailed, so any cap affects a real fraction.
+
+Pair cap on max(chosen, rejected), both with EOS (parity with the RM filter):
+          Effect of each cap (filter: a row is dropped if length > cap)           
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃            cap ┃ train rows kept ┃ train % kept ┃ test rows kept ┃ test % kept ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│            384 │         136,230 │       84.72% │          7,252 │      84.80% │
+│            448 │         144,172 │       89.66% │          7,669 │      89.67% │
+│ 512  (current) │         149,566 │       93.01% │          7,952 │      92.98% │
+│            640 │         155,710 │       96.83% │          8,271 │      96.71% │
+│            768 │         158,161 │       98.36% │          8,396 │      98.18% │
+└────────────────┴─────────────────┴──────────────┴────────────────┴─────────────┘
+Note: no candidate keeps >= 99% of train rows; the length distribution is long-tailed, so any cap affects a real fraction.
+
+                      Compound filter at the current caps (prompt<=256, pair<=512)                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┓
+┃ outcome                                                 ┃ train pairs ┃ train % ┃ test pairs ┃ test % ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━┩
+│ kept (both caps pass)                                   │     133,013 │  82.72% │      7,039 │ 82.31% │
+│ dropped by prompt cap only                              │      16,553 │  10.29% │        913 │ 10.68% │
+│ dropped by pair cap only                                │         318 │   0.20% │         16 │  0.19% │
+│ dropped by both                                         │      10,916 │   6.79% │        584 │  6.83% │
+│ kept, sides share the final-turn prompt (trainer's set) │     132,924 │  82.66% │      7,033 │ 82.24% │
+└─────────────────────────────────────────────────────────┴─────────────┴─────────┴────────────┴────────┘
+The train 'kept' row is what DPO trains on; PPO kept 82.92% under its prompt cap alone, so the pair cap uniquely costs 0.20 percentage 
+points of 160,800 training pairs -- the price of RM parity. The last row is what the trainer sees: its train count is the training set and 
+its test count is the post-training gate population.
+
+           Chosen-vs-rejected length bias           
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃ statistic                        ┃ train ┃  test ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ chosen longer                    │ 50.9% │ 51.7% │
+│ rejected longer                  │ 47.1% │ 46.3% │
+│ equal length                     │  2.0% │  2.0% │
+│ mean(chosen - rejected) tokens   │  +3.4 │  +2.9 │
+│ median(chosen - rejected) tokens │    +1 │    +2 │
+└──────────────────────────────────┴───────┴───────┘
+train: near-symmetric, length is weakly informative of preference.
+test: near-symmetric, length is weakly informative of preference.
+
+                             Data quality checks                              
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┓
+┃ check                        ┃ train count ┃ train % ┃ test count ┃ test % ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━┩
+│ empty / whitespace side      │           0 │   0.00% │          0 │  0.00% │
+│ identical chosen == rejected │         740 │   0.46% │         36 │  0.42% │
+│ duplicate pairs              │           0 │   0.00% │          0 │  0.00% │
+└──────────────────────────────┴─────────────┴─────────┴────────────┴────────┘
+Identical pairs carry no preference signal (the DPO loss sees a zero margin by construction) and exact duplicates re-weight their pair; both
+are defects here, unlike the expected prompt reuse across different pairs, which is the dataset's design. In the test split an identical 
+pair can only tie, and the gate counts a tie as a failure.
+
+  Train-test overlap (exact match, as a fraction of the test   
+                            split)                             
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━┓
+┃ overlap                            ┃ test pairs ┃ % of test ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━┩
+│ prompt also in train               │         72 │     0.84% │
+│ either full dialogue also in train │          0 │     0.00% │
+│ whole pair also in train           │          0 │     0.00% │
+└────────────────────────────────────┴────────────┴───────────┘
+No exact leakage: no test dialogue or pair appears in train. Shared prompts, if any, are the dataset's prompt reuse, not leakage of a judged
+response.
+

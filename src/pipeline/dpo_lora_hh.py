@@ -35,19 +35,25 @@ exported to the pipeline-shared DPO_MODEL path (opt-in, as in every stage).
 Dataset
 -------
 Anthropic/hh-rlhf — human preference pairs in implicit-prompt format: each
-example holds 'chosen' and 'rejected' full-dialogue texts, consumed directly
-by trl.DPOTrainer, which extracts the shared prompt and appends EOS itself.
+example holds 'chosen' and 'rejected' full-dialogue texts. The pipeline splits
+off the shared prompt at the final '\\n\\nAssistant:' marker (split_prompt)
+before handing the pairs to trl.DPOTrainer, which appends EOS itself.
 
 Public API
 ----------
 train(config)   — run DPO; return (trainer, gate_dataset, n_test).
 filter_pairs(dataset, tokenizer, max_prompt_tokens, max_pair_tokens)
                 — drop pairs violating the prompt or pair length caps.
+exclude_train_pairs(gate_ds, train_raw)
+                — drop gate pairs that appear verbatim in the training split.
+split_prompt(dataset)
+                — add the explicit 'prompt' column, cut at the final Assistant marker.
 """
 
 # stdlib
 import hashlib
 import json
+import math
 import os
 import sys
 from dataclasses import asdict, dataclass, field
@@ -99,19 +105,20 @@ class DPOTrainingConfig:
     lora_dropout: float = 0.05
     lora_target_modules: list[str] = field(default_factory=lambda: ["q_proj", "v_proj"])
 
-    # DPO objective. beta prices drift from pi_ref inside the implicit reward;
-    # it is the sweep axis for the matched-KL comparison against PPO (the two
-    # coefficients are not numerically comparable, so runs are compared on the
-    # reward-vs-KL plane instead). loss_type='ipo' is the documented switch if
-    # likelihood displacement appears (logps/chosen falling alongside
-    # logps/rejected).
+    # DPO objective. beta prices drift from pi_ref inside the implicit reward.
+    # Lower beta raises held-out accuracy and chosen-side drift together, so
+    # beta is chosen on the trade-off between them, not on accuracy alone.
+    # loss_type='ipo' is the documented switch if likelihood displacement
+    # (logps/chosen falling alongside logps/rejected) becomes large.
     beta:      float = 0.1
     loss_type: str   = "sigmoid"
 
-    # Optimisation — 5e-7, two to three orders below SFT values: the implicit
-    # rewards are extremely sensitive to log-probability changes, and larger
-    # steps reliably destabilise DPO.
-    learning_rate:               float = 5e-7
+    # Optimisation. The DPO paper's 5e-7 is a full-fine-tuning rate; a LoRA
+    # adapter starts at zero and needs a larger step (see the report). The
+    # schedule is the Trainer's linear one: ramp over warmup_ratio of the
+    # steps, then decay to zero.
+    learning_rate:               float = 1e-4
+    warmup_ratio:                float = 0.03
     n_epochs:                    int   = 1
     per_device_train_batch_size: int   = 4
     per_device_eval_batch_size:  int   = 2   # small to cap the eval-time logit peak
@@ -119,6 +126,10 @@ class DPOTrainingConfig:
     # Off by default like the RM baseline: one 0.5B backbone with adapters and
     # <=512-token sequences is not memory-bound; enable for capacity sweeps.
     gradient_checkpointing:      bool  = False
+    # Score pi_ref once before training instead of once per step. Same numbers
+    # (the base is frozen and adapter-disabled either way); removes the
+    # reference forward's transient logits from every step.
+    precompute_ref_log_probs:    bool  = False
 
     # Length caps, both with FILTER semantics (a pair is dropped, never
     # truncated). max_prompt_tokens mirrors the PPO prompt cap so DPO trains
@@ -147,6 +158,14 @@ class DPOTrainingConfig:
                 f"max_prompt_tokens ({self.max_prompt_tokens}) must be below "
                 f"max_pair_tokens ({self.max_pair_tokens}); the response needs room."
             )
+        if self.save_steps % self.eval_steps != 0:
+            raise ValueError(
+                f"save_steps ({self.save_steps}) must be a multiple of eval_steps "
+                f"({self.eval_steps}); best-checkpoint selection needs an evaluation "
+                f"at every save."
+            )
+        if not 0.0 <= self.warmup_ratio < 1.0:
+            raise ValueError(f"warmup_ratio ({self.warmup_ratio}) must be in [0, 1).")
 
     @property
     def label(self) -> str:
@@ -174,9 +193,8 @@ def train(config: DPOTrainingConfig) -> tuple[DPOTrainer, Dataset, int]:
 
     Returns:
         trainer: The fitted DPOTrainer.
-        gate_ds: The held-out test split filtered to cap-admissible pairs,
-                 for the post-training gate evaluation (training-time
-                 evaluation uses a seeded subsample of it).
+        gate_ds: The gate population: the filtered test split minus the
+                 in-training evaluation subsample, scored once after training.
         n_test:  The unfiltered test-split size, for the retention record.
     """
     sft_path  = resolve_model_path(config.sft_model_path, "causal-lm")
@@ -222,30 +240,36 @@ def _load_preference_datasets(
     (the two sides of an HH-RLHF pair differ mainly in the final assistant
     turn; clipping tends to leave two near-identical prefixes).
 
-    The filtered test split then serves two roles, as in the RM stage:
+    Two further exclusions follow the caps: gate pairs that appear verbatim
+    in the training split (exclude_train_pairs), and pairs whose sides
+    diverge before the final assistant turn (split_prompt). The filtered
+    test split is then divided into two DISJOINT roles:
 
     - eval_ds: a seeded eval_examples-pair subsample, evaluated every
-      eval_steps during training (cheap, enough precision for checkpoint
-      selection).
-    - gate_ds: the whole filtered split, scored once post-training where
-      precision matters.
+      eval_steps during training and used to select the best checkpoint.
+    - gate_ds: every other filtered test pair, scored once post-training.
+      Keeping it disjoint from eval_ds means the checkpoint is never
+      selected on pairs the gate then scores.
 
     Returns (train_ds, eval_ds, gate_ds, n_test_total), the last being the
     unfiltered test-split size for the retention record.
     """
     train_raw = load_dataset(config.dataset_name, split="train")
     test_raw  = load_dataset(config.dataset_name, split="test")
-    train_ds  = filter_pairs(train_raw, tokenizer, config.max_prompt_tokens, config.max_pair_tokens)
-    gate_ds   = filter_pairs(test_raw,  tokenizer, config.max_prompt_tokens, config.max_pair_tokens)
-    eval_ds   = gate_ds.shuffle(seed=config.seed).select(
-        range(min(config.eval_examples, len(gate_ds)))
-    )
+    train_ds  = split_prompt(filter_pairs(train_raw, tokenizer, config.max_prompt_tokens, config.max_pair_tokens))
+    gate_ds   = filter_pairs(test_raw, tokenizer, config.max_prompt_tokens, config.max_pair_tokens)
+    test_ds   = split_prompt(exclude_train_pairs(gate_ds, train_raw))
+    n_eval    = min(config.eval_examples, len(test_ds))
+    shuffled  = test_ds.shuffle(seed=config.seed)
+    eval_ds   = shuffled.select(range(n_eval))
+    gate_ds   = shuffled.select(range(n_eval, len(shuffled)))
     console.print(
-        f"Length filter (prompt<={config.max_prompt_tokens}, pair<={config.max_pair_tokens}): "
-        f"train {len(train_ds):,}/{len(train_raw):,} "
-        f"({100 * len(train_ds) / len(train_raw):.1f}% kept), "
-        f"test {len(gate_ds):,}/{len(test_raw):,} "
-        f"({100 * len(gate_ds) / len(test_raw):.1f}% kept)"
+        f"Data view (caps prompt<={config.max_prompt_tokens}, pair<={config.max_pair_tokens}, "
+        f"prompt split, overlap): train {len(train_ds):,}/{len(train_raw):,} "
+        f"({100 * len(train_ds) / len(train_raw):.1f}% kept); "
+        f"test {len(test_ds):,}/{len(test_raw):,} "
+        f"({100 * len(test_ds) / len(test_raw):.1f}% kept) = "
+        f"{len(eval_ds):,} eval + {len(gate_ds):,} gate"
     )
     return train_ds, eval_ds, gate_ds, len(test_raw)
 
@@ -291,6 +315,69 @@ def filter_pairs(
     )
 
 
+def exclude_train_pairs(gate_ds: Dataset, train_raw: Dataset) -> Dataset:
+    """Drop any gate pair that also appears, verbatim, in the training split.
+
+    The gate's claim is that no scored pair was trained on. The EDA observes
+    zero overlap in HH-RLHF; this turns the observation into a guarantee, on
+    raw texts before the prompt split, against the whole training split
+    rather than its filtered view. A non-zero count is printed so leakage
+    would be visible in the log rather than silently scored.
+    """
+    train_pairs = set(zip(train_raw["chosen"], train_raw["rejected"]))
+
+    def _unseen(batch: dict) -> list[bool]:
+        return [(c, r) not in train_pairs for c, r in zip(batch["chosen"], batch["rejected"])]
+
+    n_before = len(gate_ds)
+    gate_ds = gate_ds.filter(_unseen, batched=True,
+                             desc="Excluding gate pairs present in the training split")
+    n_dropped = n_before - len(gate_ds)
+    colour = "yellow" if n_dropped else "green"
+    console.print(f"[{colour}]{n_dropped} gate pair(s) also present in the training split, excluded[/{colour}]")
+    return gate_ds
+
+
+def split_prompt(dataset: Dataset) -> Dataset:
+    """Add an explicit 'prompt' column and strip it from both sides.
+
+    Given no 'prompt' column, DPOTrainer extracts one as the longest common
+    CHARACTER prefix of chosen and rejected. In HH-RLHF that prefix routinely
+    runs past the '\\n\\nAssistant:' marker into the shared opening words
+    of the two responses, and can end mid-word. The trainer then tokenises
+    prompt and prompt+completion separately and slices the completion off
+    by prompt length, so a mid-word cut changes the BPE merges at the
+    boundary and the sliced completion loses or corrupts its first tokens
+    (TRL warns 'Mismatch between tokenized prompt and the start of tokenized
+    prompt+chosen').
+
+    Splitting at the marker instead ends the prompt on ':' with the response
+    keeping its leading space, which is a pre-tokenisation boundary, so the
+    two tokenisations agree. It is also the prompt filter_pairs measured, so
+    the prompt cap applies to the object DPOTrainer actually sees. Pairs
+    whose rejected side does not share the prompt are transcripts that
+    diverge at an earlier assistant turn, i.e. two conversations rather than
+    two responses to one prompt; they are dropped rather than mis-split, and
+    the count is printed.
+    """
+    def _shares_prompt(example: dict) -> bool:
+        return example["rejected"].startswith(extract_prompt(example["chosen"]))
+
+    def _split(batch: dict) -> dict:
+        prompts = [extract_prompt(t) for t in batch["chosen"]]
+        return {
+            "prompt":   prompts,
+            "chosen":   [t[len(p):] for t, p in zip(batch["chosen"], prompts)],
+            "rejected": [t[len(p):] for t, p in zip(batch["rejected"], prompts)],
+        }
+
+    n_before = len(dataset)
+    dataset = dataset.filter(_shares_prompt, desc="Checking both sides share the prompt")
+    if len(dataset) != n_before:
+        console.print(f"[yellow]{n_before - len(dataset)} pair(s) dropped: rejected side does not share the prompt[/yellow]")
+    return dataset.map(_split, batched=True, desc="Splitting prompt from responses")
+
+
 def _build_trainer(
     policy:    torch.nn.Module,
     tokenizer: PreTrainedTokenizer,
@@ -306,6 +393,12 @@ def _build_trainer(
         lora_dropout=config.lora_dropout,
         task_type="CAUSAL_LM",
     )
+    # Derive absolute warmup steps from the ratio (warmup_ratio is deprecated in
+    # transformers >=5.2). Single-device (MPS), so effective batch = batch x accum.
+    effective_batch = config.per_device_train_batch_size * config.gradient_accumulation_steps
+    steps_per_epoch = math.ceil(len(train_ds) / effective_batch)
+    warmup_steps    = round(config.warmup_ratio * steps_per_epoch * config.n_epochs)
+
     # logging_dir is deprecated; the TensorBoard integration now reads this env var.
     os.environ["TENSORBOARD_LOGGING_DIR"] = f"{RESULT_PATH}/tb/{config.label}"
 
@@ -316,8 +409,10 @@ def _build_trainer(
         per_device_eval_batch_size=config.per_device_eval_batch_size,
         gradient_accumulation_steps=config.gradient_accumulation_steps,
         learning_rate=config.learning_rate,
+        warmup_steps=warmup_steps,
         beta=config.beta,
         loss_type=config.loss_type,
+        precompute_ref_log_probs=config.precompute_ref_log_probs,
         # Truncation backstop only: filter_pairs guarantees every surviving
         # sequence fits, so this never binds. (TRL v1 has no filtering cap and
         # no max_prompt_length; truncation is its only length mechanism.)
@@ -332,10 +427,9 @@ def _build_trainer(
         eval_steps=config.eval_steps,
         save_steps=config.save_steps,
         # Keep the best checkpoint rather than the final one (save_steps must
-        # be a multiple of eval_steps). The DPO eval loss is monotone in the
-        # implicit reward margin, so lower loss tracks higher pairwise
-        # accuracy and is a sound selection metric; the post-training gate
-        # evaluation remains the real acceptance record.
+        # be a multiple of eval_steps). The per-pair loss is monotone in that
+        # pair's margin, but mean loss is not monotone in accuracy, so the two
+        # can pick different checkpoints; the post-training gate records both.
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
         greater_is_better=False,
@@ -377,23 +471,34 @@ def save_metrics(
     """
     metrics = {
         "label":                 config.label,
-        "gate_accuracy":         gate.get("eval_rewards/accuracies"),
-        "gate_margin":           gate.get("eval_rewards/margins"),
-        "gate_loss":             gate.get("eval_loss"),
-        "gate_logps_chosen":     gate.get("eval_logps/chosen"),
-        "gate_logps_rejected":   gate.get("eval_logps/rejected"),
+        "gate_accuracy":         gate["eval_rewards/accuracies"],
+        "gate_margin":           gate["eval_rewards/margins"],
+        "gate_loss":             gate["eval_loss"],
+        "gate_logps_chosen":     gate["eval_logps/chosen"],
+        "gate_logps_rejected":   gate["eval_logps/rejected"],
+        # Implicit rewards on each side; divided by beta, the drift from pi_ref
+        # that configurations are compared on.
+        "gate_rewards_chosen":   gate["eval_rewards/chosen"],
+        "gate_rewards_rejected": gate["eval_rewards/rejected"],
         "beta":                  config.beta,
         "loss_type":             config.loss_type,
-        # The gate filters the test split to cap-admissible pairs (parity with
-        # training); the counts make the evaluation population auditable.
+        # The gate is the filtered test split minus the in-training evaluation
+        # subsample; the counts make the evaluation population auditable.
         "n_eval_pairs":          n_gate,
+        "n_eval_subsample_pairs": len(trainer.eval_dataset),
         "n_test_split_pairs":    n_test,
-        "length_retention":      n_gate / n_test,
+        "length_retention":      (n_gate + len(trainer.eval_dataset)) / n_test,
+        # The training set after both caps and the prompt split, i.e. what
+        # one epoch iterates over; cross-check against the EDA's kept count.
+        "n_train_pairs":         len(trainer.train_dataset),
         "max_prompt_tokens":     config.max_prompt_tokens,
         "max_pair_tokens":       config.max_pair_tokens,
         "sft_model_path":        config.sft_model_path,
         "dataset_name":          config.dataset_name,
         "global_step":           trainer.state.global_step,
+        # The weights the gate scored: load_best_model_at_end restores this
+        # checkpoint, which need not be the final step.
+        "best_model_checkpoint": trainer.state.best_model_checkpoint,
         "timestamp_utc":         datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     path = f"{RESULT_PATH}/metrics_{config.label}.json"
@@ -409,9 +514,9 @@ def save_metrics(
 def parse_config(argv: list[str] | None = None) -> DPOTrainingConfig:
     """Build a DPOTrainingConfig from the command line or a JSON config file.
 
-    Two invocation styles are supported, so experiments (e.g. the beta sweep
-    for the matched-KL comparison against PPO) are driven by config rather
-    than by editing the source:
+    Two invocation styles are supported, so experiments (e.g. the beta
+    sensitivity sweep) are driven by config rather than by editing the
+    source:
 
         python -m src.pipeline.dpo_lora_hh --beta 0.05
         python -m src.pipeline.dpo_lora_hh configs/dpo_default.json
@@ -461,8 +566,8 @@ def main() -> None:
     # exactly this block on the best checkpoint without retraining, via the
     # same resume mechanism as the RM stage.
     console.print(
-        f"Gate set: {len(gate_ds):,} of {n_test:,} test pairs within caps "
-        f"(prompt<={config.max_prompt_tokens}, pair<={config.max_pair_tokens})"
+        f"Gate set: {len(gate_ds):,} of {n_test:,} test pairs (within caps, prompt-split, "
+        f"unseen in training, and outside the in-training evaluation subsample)"
     )
     # DPOTrainer tokenises its datasets in __init__ only, so a dataset handed
     # to evaluate() later must be put through the same preparation explicitly
@@ -474,8 +579,15 @@ def main() -> None:
         gate_ds, trainer.processing_class, trainer.args, "gate"
     )
     gate = trainer.evaluate(eval_dataset=gate_prepared)
-    accuracy = gate.get("eval_rewards/accuracies")
-    margin   = gate.get("eval_rewards/margins")
+    # TRL's DPOTrainer.log rebinds its `logs` argument rather than mutating it
+    # (dpo_trainer.py line 1482 in the pinned version), so the DPO metrics reach
+    # the callbacks and TensorBoard but never the dict evaluate() returns. The
+    # callbacks did receive them, so merge them back from the last state entry.
+    # Subscript rather than .get() throughout: a missing key must fail here,
+    # not travel on as None into the printed line and the metrics file.
+    gate = {**gate, **trainer.state.log_history[-1]}
+    accuracy = gate["eval_rewards/accuracies"]
+    margin   = gate["eval_rewards/margins"]
     console.print(
         f"Held-out implicit-reward accuracy over {len(gate_ds):,} pairs: "
         f"[bold]{accuracy:.3f}[/bold] (mean margin {margin:.3f}) -- "
@@ -519,9 +631,9 @@ if __name__ == "__main__":
 #   either side with EOS exceeds 512 (the RM's cap); max_length is kept only
 #   as a backstop that never binds.
 # - Comparability: the caps and the LoRA setup (32/64/q,v) exist so the
-#   PPO-vs-DPO comparison is not confounded by data view or capacity; beta is
-#   the sweep axis, and runs are compared on the reward-vs-KL plane rather
-#   than at equal coefficients.
+#   PPO-vs-DPO comparison is not confounded by data view or capacity. The
+#   default beta is the arm compared against PPO, fixed in advance; other
+#   beta values are a sensitivity check, never a pool to select the arm from.
 # - Gate: after training, trainer.evaluate over the whole filtered test split
 #   records the implicit-reward pairwise accuracy (DPO's analogue of the RM
 #   accuracy gate; expectation band 0.6-0.7), plus the chosen/rejected

@@ -17,7 +17,7 @@ import pytest
 from datasets import Dataset
 
 # local
-from src.pipeline.dpo_lora_hh import DPOTrainingConfig, filter_pairs
+from src.pipeline.dpo_lora_hh import DPOTrainingConfig, exclude_train_pairs, filter_pairs, split_prompt
 
 EOS = "<eos>"
 
@@ -89,7 +89,66 @@ def test_config_rejects_prompt_cap_at_or_above_pair_cap():
         DPOTrainingConfig(max_prompt_tokens=512, max_pair_tokens=512)
 
 
+def test_config_rejects_save_steps_not_multiple_of_eval_steps():
+    with pytest.raises(ValueError):
+        DPOTrainingConfig(eval_steps=500, save_steps=300)
+    DPOTrainingConfig(eval_steps=500, save_steps=1000)   # multiples are fine
+
+
+def test_config_rejects_warmup_ratio_out_of_range():
+    with pytest.raises(ValueError):
+        DPOTrainingConfig(warmup_ratio=1.0)
+
+
 def test_beta_sweep_yields_distinct_labels():
-    # The matched-KL comparison sweeps beta; each step must get its own
-    # results directory, so the full-config hash must move with beta.
+    # The beta sensitivity sweep needs each step in its own results
+    # directory, so the full-config hash must move with beta.
     assert DPOTrainingConfig(beta=0.05).label != DPOTrainingConfig(beta=0.1).label
+
+
+def test_split_prompt_cuts_at_marker_not_common_prefix():
+    # The two responses share their opening word. A common-character-prefix
+    # split (TRL's default) would push 'The' into the prompt and leave the
+    # chosen side starting mid-word ('refore'); the marker split must not.
+    prompt = "Human: Should I go?\n\nAssistant:"
+    dataset = Dataset.from_dict({
+        "chosen":   [prompt + " Therefore yes."],
+        "rejected": [prompt + " The best answer is no."],
+    })
+    out = split_prompt(dataset)[0]
+    assert out["prompt"] == prompt
+    assert out["chosen"] == " Therefore yes."
+    assert out["rejected"] == " The best answer is no."
+
+
+def test_split_prompt_reconstructs_both_sides():
+    p = pair(4, 3, 2)
+    dataset = Dataset.from_dict({"chosen": [p["chosen"]], "rejected": [p["rejected"]]})
+    out = split_prompt(dataset)[0]
+    assert out["prompt"] + out["chosen"] == p["chosen"]
+    assert out["prompt"] + out["rejected"] == p["rejected"]
+    assert out["prompt"].endswith("\n\nAssistant:")
+
+
+def test_split_prompt_drops_pairs_without_shared_prompt():
+    good = pair(4, 3, 2)
+    dataset = Dataset.from_dict({
+        "chosen":   [good["chosen"],   "Human: a\n\nAssistant: x"],
+        "rejected": [good["rejected"], "Human: b\n\nAssistant: y"],
+    })
+    assert len(split_prompt(dataset)) == 1
+
+
+def test_exclude_train_pairs_drops_only_verbatim_overlap():
+    shared = pair(4, 3, 2)
+    other = pair(5, 2, 2)
+    train = Dataset.from_dict({"chosen": [shared["chosen"]], "rejected": [shared["rejected"]]})
+    # A gate pair with the same prompt but different responses is NOT overlap.
+    same_prompt = {"chosen": shared["chosen"] + " x", "rejected": shared["rejected"] + " y"}
+    gate = Dataset.from_dict({
+        "chosen":   [shared["chosen"], other["chosen"], same_prompt["chosen"]],
+        "rejected": [shared["rejected"], other["rejected"], same_prompt["rejected"]],
+    })
+    kept = exclude_train_pairs(gate, train)
+    assert len(kept) == 2
+    assert shared["chosen"] not in kept["chosen"]

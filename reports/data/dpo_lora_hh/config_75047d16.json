@@ -1,5 +1,5 @@
 {
-  "sft_model_path": null,
+  "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
   "dataset_name": "Anthropic/hh-rlhf",
   "seed": 42,
   "lora_r": 32,
