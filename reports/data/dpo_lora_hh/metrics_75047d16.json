@@ -5,6 +5,8 @@
   "gate_loss": 0.6316473484039307,
   "gate_logps_chosen": -147.67018096368756,
   "gate_logps_rejected": -146.1789764041414,
+  "gate_rewards_chosen": -0.6437793410595236,
+  "gate_rewards_rejected": -0.9917298580196038,
   "beta": 0.1,
   "loss_type": "sigmoid",
   "n_eval_pairs": 6033,
@@ -17,5 +19,6 @@
   "sft_model_path": "/Volumes/ML_Workspace/projects/rlhf-course/sft-model",
   "dataset_name": "Anthropic/hh-rlhf",
   "global_step": 8308,
-  "timestamp_utc": "2026-09-20T02:17:09+00:00"
+  "best_model_checkpoint": "/Volumes/ML_Workspace/projects/rlhf-course/results/dpo_lora_hh/checkpoints_75047d16/checkpoint-7500",
+  "timestamp_utc": "2026-09-25T23:53:29+00:00"
 }

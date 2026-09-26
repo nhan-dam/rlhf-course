@@ -2,13 +2,13 @@
 
 > Created on: 17 July 2026
 >
-> Updated on: 22 September 2026
+> Updated on: 26 September 2026
 
 This note documents an implementation of the first Phase 3 stage: direct preference optimisation (DPO) ([Rafailov et al., 2023](#ref-rafailov2023)) of the supervised fine-tuning (SFT) policy on the pairwise preferences of `Anthropic/hh-rlhf`, replacing the reward model (RM) and proximal policy optimisation (PPO) stages of the classical reinforcement learning from human feedback (RLHF) pipeline with a single supervised loss. The stage is designed as the second arm of a controlled PPO-versus-DPO comparison: its data view, trainable capacity, and initialisation deliberately match the PPO stage documented in the PPO report.
 
 The full source code can be found on [GitHub](https://github.com/nhan-dam/rlhf-course/blob/main/src/pipeline/dpo_lora_hh.py).
 
-**Status note.** Implementation, exploratory data analysis and both hyperparameter sweeps are complete. The selected arm is `75047d16`, at a learning rate of $10^{-4}$ and $\beta = 0.1$. Its results are in [Section 7](#7-results) and every run is in [Section 9](#9-appendix-hyperparameter-sweeps). The comparison against PPO in [Section 6](#6-comparative-evaluation-protocol) has not yet been run.
+**Status note.** Implementation, exploratory data analysis and both hyperparameter sweeps are complete, seven runs in all. The selected arm is `75047d16`, at a learning rate of $10^{-4}$ and $\beta = 0.1$, promoted to the canonical `dpo-model/` path. [Section 7](#7-results) reports it, and [Section 9](#9-appendix-hyperparameter-sweeps) reports every run and the selection. The comparison against PPO in [Section 6](#6-comparative-evaluation-protocol) has not yet been run.
 
 ## 1. Background
 
@@ -106,23 +106,23 @@ The LoRA configuration is identical to the PPO policy adapter: rank 32, $\alpha 
 
 ### 3.5. Learning Rate
 
-The default is $10^{-4}$. The DPO paper's $5 \times 10^{-7}$, and the $10^{-7}$ to $10^{-6}$ range that is standard in the literature, are full-fine-tuning rates. This stage trains a LoRA adapter, whose update starts at zero and needs a larger step, which is why the earlier stages ran the same adapter shape at $10^{-4}$ (RM) and $10^{-5}$ (PPO). The value was set by the sweep in [Section 9.1](#91-learning-rate-sweep). Of five rates, the three below $10^{-4}$ missed the gate band, and $3 \times 10^{-4}$ cleared it by a further 0.007 at twice the chosen-side drift. A higher rate buys accuracy with drift in the same way a lower $\beta$ does ([Table 7](#tab-dpo-completed-runs)).
+The default is $10^{-4}$. The DPO paper's $5 \times 10^{-7}$, and the $10^{-7}$ to $10^{-6}$ range that is standard in the literature, are full-fine-tuning rates. This stage trains a LoRA adapter, whose update starts at zero and needs a larger step, which is why the earlier stages ran the same adapter shape at $10^{-4}$ (RM) and $10^{-5}$ (PPO). The value was chosen by the sweep in [Section 9.1](#91-learning-rate-sweep).
 
 ### 3.6. Beta, Loss Type, and Likelihood Displacement
 
 $\beta$ prices drift from $\pi_{\text{ref}}$ inside the implicit reward, playing the role the KL coefficient plays in the PPO stage, but the two coefficients are not numerically comparable, so no attempt is made to match them. The default is 0.1, and the sweep over 0.05, 0.1 and 0.3 is in [Section 9.2](#92-beta-sweep). The loss defaults to the sigmoid form of [(2)](#eq-dpo-loss). A documented failure mode of that loss is **likelihood displacement**: the log-probabilities of chosen and rejected responses falling together, with the margin growing only because the rejected side falls faster. The monitoring signal is `logps/chosen` falling alongside `logps/rejected`, and the documented responses are switching `loss_type` to `'ipo'` ([Azar et al., 2024](#ref-azar2024)), whose bounded objective removes the incentive to push the margin without limit, or raising $\beta$. Both are configuration changes.
 
-The signal is a matter of degree, not a binary. Relative to the reference, the chosen-side log-probability is lower in every completed run, so its sign cannot discriminate between configurations. Its magnitude can: at the gate it ranges from −1.50 nats at $\beta = 0.3$ to −18.76 at $\beta = 0.05$ ([Table 7](#tab-dpo-completed-runs)). The stage therefore selects $\beta$ on that magnitude ([Section 9.3](#93-selected-configuration)) rather than switching the loss, and IPO remains untested here.
+The signal is a matter of degree, not a binary. Relative to the reference, the chosen-side log-probability is lower in every completed run ([Table 5](#tab-dpo-runs)), so its sign cannot discriminate between configurations and only its magnitude can. The stage therefore selects its configuration on that magnitude ([Section 9.3](#93-selected-configuration)) rather than by switching the loss, and IPO remains untested here.
 
 ### 3.7. Configuration-Driven Experiments and Run Tracking
 
-The stage uses the same machinery as the other three: `DPOTrainingConfig` is parsed with `transformers.HfArgumentParser` from CLI overrides or a JSON file, the run label is the hash of the full resolved configuration, and each run writes `config_<label>.json` and `metrics_<label>.json` to its own results directory, joined and ranked by the shared `aggregate_metrics.py` (DPO runs rank by held-out implicit-reward accuracy). The $\beta$ sweep is therefore three commands differing in one flag, each landing in its own directory.
+The stage uses the same machinery as the other three: `DPOTrainingConfig` is parsed with `transformers.HfArgumentParser` from CLI overrides or a JSON file, the run label is the hash of the full resolved configuration, and each run writes `config_<label>.json` and `metrics_<label>.json` to its own results directory, joined and ranked by the shared `aggregate_metrics.py` (DPO runs are listed by gate accuracy, a display order rather than the selection criterion of [Section 9.3](#93-selected-configuration)). The $\beta$ sweep is therefore three commands differing in one flag, each landing in its own directory.
 
-Unlike the experimental PPO trainer, `DPOTrainer` is a standard `Trainer` subclass, so the two capabilities the PPO stage lacks return here: an interrupted run resumes from its latest checkpoint (the unchanged config hashes to the same label, so the checkpoint directory is found automatically), and `load_best_model_at_end` keeps the checkpoint with the lowest evaluation loss. The per-pair loss is monotone in that pair's margin, but the mean loss is not monotone in accuracy. Across runs, `c5d8a287` has both the higher gate accuracy and the higher gate loss of the pair it forms with `75047d16`, at 0.642 against 0.635 and 0.639 against 0.632. Within a run, the lowest-loss checkpoint is also the highest-accuracy one in two of the four completed runs, and in the other two the subsample accuracy given up is 0.001 and 0.006, inside its 0.016 standard error.
+Unlike the experimental PPO trainer, `DPOTrainer` is a standard `Trainer` subclass, so the two capabilities the PPO stage lacks return here: an interrupted run resumes from its latest checkpoint (the unchanged config hashes to the same label, so the checkpoint directory is found automatically), and `load_best_model_at_end` keeps the checkpoint with the lowest evaluation loss. The per-pair loss is monotone in that pair's margin, but the mean loss is not monotone in accuracy, so the two can pick different checkpoints. In five of the seven runs they do, and the subsample accuracy given up is at most 0.014, inside that subsample's 0.016 standard error. The gate records both measures.
 
 ### 3.8. Post-Training Gate
 
-Training-time evaluation scores a seeded 1,000-pair subsample of the filtered test split every 500 steps, enough precision for checkpoint selection at bounded cost, and the best checkpoint is chosen on it. After training, the gate scores the **remaining** 6,033 filtered test pairs once, disjoint from the subsample so that the checkpoint is never selected on pairs the gate then scores, and persists the result: the implicit-reward pairwise accuracy (the fraction of held-out pairs where the implicit reward ranks chosen above rejected), the mean margin, the chosen and rejected log-probabilities, and the chosen and rejected implicit rewards, whose ratio to $\beta$ is the drift from the reference that [Section 3.6](#36-beta-loss-type-and-likelihood-displacement) selects on. The two roles mirror the RM stage's, with the one difference that DPO keeps them disjoint because it selects a checkpoint on the subsample where the RM only monitored on it. The expectation band is the same 0.6 to 0.7 that gated the RM. All four completed runs land inside it, between 0.603 and 0.649, and [Table 7](#tab-dpo-completed-runs) shows why reaching it says little on its own: across configurations, gate accuracy rises with drift from the reference. The band is therefore a floor, not a selection criterion. Re-running a completed configuration recomputes exactly this block on the best checkpoint without retraining, via the same resume mechanism.
+Training-time evaluation scores a seeded 1,000-pair subsample of the filtered test split every 500 steps, enough precision for checkpoint selection at bounded cost, and the best checkpoint is chosen on it. After training, the gate scores the **remaining** 6,033 filtered test pairs once, disjoint from the subsample so that the checkpoint is never selected on pairs the gate then scores, and persists the result: the implicit-reward pairwise accuracy (the fraction of held-out pairs where the implicit reward ranks chosen above rejected), the mean margin, the chosen and rejected log-probabilities, and the chosen and rejected implicit rewards, whose ratio to $\beta$ is the drift from the reference that [Section 3.6](#36-beta-loss-type-and-likelihood-displacement) selects on. The two roles mirror the RM stage's, with the one difference that DPO keeps them disjoint because it selects a checkpoint on the subsample where the RM only monitored on it. The expectation band is the same 0.6 to 0.7 that gated the RM. It works as a floor, not a selection criterion: within each sweep of [Section 9](#9-appendix-hyperparameter-sweeps), gate accuracy rises with drift from the reference, so the band can be reached by drifting further. Re-running a completed configuration recomputes exactly this block on the best checkpoint without retraining, via the same resume mechanism.
 
 ## 4. Training Configuration
 
@@ -134,7 +134,7 @@ The values below are the defaults. They are overridable from the command line or
 | LoRA rank $r$ / scaling $\alpha$ / dropout | 32 / 64 / 0.05 (parity with the PPO policy) |
 | LoRA target modules | `q_proj`, `v_proj` |
 | $\beta$ | 0.1 (sweep axis: 0.05 / 0.1 / 0.3) |
-| Loss type | sigmoid (switch to IPO on likelihood displacement) |
+| Loss type | sigmoid (IPO untested, see [Section 3.6](#36-beta-loss-type-and-likelihood-displacement)) |
 | Learning rate | $10^{-4}$, linear schedule with 3% warmup |
 | Epochs | 1 |
 | Per-device batch size $\times$ gradient accumulation | $4 \times 4 = 16$ effective |
@@ -148,7 +148,7 @@ The values below are the defaults. They are overridable from the command line or
 
 - `rewards/accuracies`, the fraction of pairs whose implicit rewards are correctly ranked. It should climb from chance towards the 0.6 to 0.7 band. A flat curve at chance means the signal is too weak (raise the learning rate cautiously or check the data), while a rapid climb towards 1.0 suggests memorisation of the preference set rather than a generalisable ranking.
 - `rewards/margins`, the mean implicit-reward margin, which should grow steadily. Margin growth with flat accuracy means existing correct pairs are being pushed further apart rather than new pairs being ranked correctly, which is the precursor of displacement.
-- `logps/chosen` and `logps/rejected` together. Both falling is the likelihood-displacement signature of [Section 3.6](#36-beta-loss-type-and-likelihood-displacement), and the response (IPO or higher $\beta$) is a configuration change.
+- `logps/chosen` and `logps/rejected` together. Both falling is the likelihood-displacement signature of [Section 3.6](#36-beta-loss-type-and-likelihood-displacement). Its size, not its sign, decides the response, which is a configuration change either way.
 - The evaluation loss, which selects the checkpoint. Divergence between falling train loss and rising evaluation loss is ordinary overfitting, expected within one epoch at this learning rate only if the rate is set too high.
 
 ## 6. Comparative Evaluation Protocol
@@ -159,13 +159,13 @@ Four policies are evaluated, not two. Alongside the PPO and DPO arms, the SFT mo
 
 - **Evaluation prompts from the dedicated test split.** Generation prompts are extracted from the 8,552-row test split (with the same 256-token prompt filter), which no stage of either pipeline has trained on. The 72 test prompts that HH-RLHF reuses from the training split with different responses ([Section 2.4](#24-data-quality-and-a-tokenisation-observation)) are excluded before sampling, so the claim holds at the prompt level and not only at the response level. The PPO stage's own 100 evaluation prompts were carved from the train split, which was sound for monitoring PPO in isolation but is unusable here, since those prompts sit inside DPO's training set.
 - **Symmetric judging.** The RM is a biased judge (PPO was optimised against it directly), and DPO's implicit reward is biased in the mirror-image way. Both models' responses are therefore scored by both judges and reported as a 2$\times$2 table, with the RM stage's adversarial probes run against both models' outputs as a judge-independent check, and an external judge as tie-breaker if the two judges disagree.
-- **The DPO arm is chosen on drift, never on RM score.** The sweeps produce several DPO models and one is compared against the PPO run. It is `75047d16`, selected in [Section 9.3](#93-selected-configuration) on gate accuracy against chosen-side drift. It is not chosen by RM score. A lower $\beta$ or a higher rate permits more drift from $\pi_{\text{ref}}$, more drift buys RM score even where the RM no longer tracks quality, and the RM cannot see drift. The other completed runs are reported beside the comparison as a sensitivity check. Each policy's sampled KL from $\pi_{\text{ref}}$ is reported beside its scores so that drift stays visible.
+- **The DPO arm is chosen on drift, never on RM score.** The sweeps produce several DPO models and one is compared against the PPO run. It is `75047d16`, selected in [Section 9.3](#93-selected-configuration) on gate accuracy against chosen-side drift. It is not chosen by RM score. A lower $\beta$ or a higher rate permits more drift from $\pi_{\text{ref}}$, more drift buys RM score even where the RM no longer tracks quality, and the RM cannot see drift. The comparison is arm against arm: each algorithm enters with its selected configuration, and the evidence for each selection stays in that algorithm's own report, here [Section 9](#9-appendix-hyperparameter-sweeps). Each policy's sampled KL from $\pi_{\text{ref}}$ is reported beside its scores so that drift stays visible.
 - **Output diversity.** Distinct-bigram ratio and missing-EOS rate over the same generations (dependency-free stand-ins for self-BLEU), since preference optimisation can purchase margin with mode collapse or turn-closing failures.
 - **Data budgets on record.** One DPO epoch sees every filtered training pair, whereas the PPO run consumed a 10,000-episode budget covering roughly 7.5% of its filtered prompts. The budgets cannot be meaningfully equalised, and are reported rather than hidden.
 
 ## 7. Results
 
-The selected arm is `75047d16`, at a learning rate of $10^{-4}$ and $\beta = 0.1$. The reasons for choosing it over the other completed runs are in [Section 9.3](#93-selected-configuration).
+The selected arm is `75047d16`, at a learning rate of $10^{-4}$ and $\beta = 0.1$. The reasons for choosing it over the six other runs are in [Section 9.3](#93-selected-configuration).
 
 ### 7.1. Training and Gate
 
@@ -219,99 +219,68 @@ Not yet run. The protocol is fixed in [Section 6](#6-comparative-evaluation-prot
 
 What the sweeps settled:
 
-- **The learning rate is bounded on both sides by measurement.** Below $10^{-4}$ no rate reached the band. Above it, $3 \times 10^{-4}$ bought 0.007 accuracy for twice the drift.
-- **Gate accuracy cannot select a configuration on its own.** Across all four completed runs it rises with drift from the reference, whichever knob produced the drift ([Table 7](#tab-dpo-completed-runs)).
-- **The displacement trigger needs a magnitude.** Its sign is the same in every completed run, while its size ranges from −1.50 to −18.76 nats.
+- **The published DPO learning rate does not transfer to a LoRA adapter.** It stayed near chance for a full epoch, and the band was cleared decisively only at a rate 200 times higher ([Section 9.1](#91-learning-rate-sweep)).
+- **Raising $\beta$ holds the policy near the reference more efficiently than lowering the rate.** At $\beta = 0.3$ the policy matches the accuracy of the two lower rates at $\beta = 0.1$ with less than half their drift ([Section 9.3](#93-selected-configuration)). The two knobs are not interchangeable routes along one trade-off.
+- **Gate accuracy cannot select a configuration on its own.** Within each sweep it rises with drift from the reference.
+- **The displacement trigger needs a magnitude.** Its sign is the same in every run.
 
 What remains open:
 
-- **Generation quality.** [Section 7.2](#72-generation-health) shows the arm is not degenerate, not that it is better. A blinded pairwise judgement against SFT, with the two HH-RLHF question texts applied to their own subsets, is the next measurement.
+- **Generation quality.** [Section 7.2](#72-generation-health) shows the arm is not degenerate, not that it is better. The next measurement is a blinded pairwise judgement against SFT on 200 held-out prompts, stratified equally between the helpfulness and harmlessness subsets of HH-RLHF, with each subset judged under its own annotation question.
 - **The comparison with PPO** of [Section 6](#6-comparative-evaluation-protocol). Two parts of its protocol have no tooling yet: the RM adversarial probes are fixtures rather than a pass over policy generations, and no external judge or prompt subset is chosen for the tie-breaker. Both must be settled before it runs.
-- **IPO** is untested. It becomes worth running if generation quality shows a cost that a higher $\beta$ cannot recover without the accuracy loss seen at 0.3.
+- **Values of $\beta$ between 0.1 and 0.3.** No run was trained there, so that stretch of the accuracy–drift frontier is unmeasured.
+- **IPO** is untested. It becomes worth running if generation quality shows a cost that a higher $\beta$ cannot recover.
 
 ## 9. Appendix: Hyperparameter Sweeps
 
-Seven runs were trained in total. Every run from `38139929` onwards differs from the arm `75047d16` in exactly one field, the learning rate or $\beta$. The two earliest, `e7492fba` and `7bc05fb0`, also predate the warmup field and ran without warmup. All use one epoch of 8,308 steps, a linear schedule decaying to zero, and the seed 42. Labels are hashes of the resolved configuration, so a run's `config_<label>.json` is the authoritative record of what produced it. Fields added to the configuration since the earliest runs mean the same settings would hash differently today.
+Seven runs were trained, each for one epoch of 8,308 steps with a linear schedule decaying to zero after 249 warmup steps, and the seed 42. Each differs from the arm `75047d16` in exactly one field, the learning rate or $\beta$. Labels are hashes of the resolved configuration, and each run's `config_<label>.json` is the authoritative record of what produced it.
 
-Two evaluation populations appear below and are not interchangeable. The in-training evaluation scores a 1,000-pair subsample every 500 steps and drives checkpoint selection, giving a standard error near 0.016 on accuracy. The post-training gate scores the disjoint 6,033-pair remainder once, on the checkpoint selected by evaluation loss, giving a standard error near 0.006. Gate figures are the comparable ones across runs, since every run reaches the gate by the same procedure.
+Two evaluation populations appear below and are not interchangeable. The in-training evaluation scores a 1,000-pair subsample every 500 steps and drives checkpoint selection, with a standard error near 0.016 on accuracy. The post-training gate scores the disjoint 6,033-pair remainder once, on the selected checkpoint, with a standard error near 0.006. Runs are compared on the gate. Because TRL logs the implicit reward scaled by $\beta$, two derived quantities are used wherever $\beta$ differs: the log-ratio gap $h$, i.e. the margin divided by $\beta$, and the drift of each side, i.e. its implicit reward divided by $\beta$, in nats relative to the reference policy.
+
+<a id="tab-dpo-runs"></a>
+
+| Run | Learning rate | Beta | Gate accuracy | Gate margin | h | Chosen drift | Rejected drift | Gate loss | Selected checkpoint | Verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `acb632d8` | $5 \times 10^{-7}$ | 0.1 | 0.553 | 0.016 | 0.16 | −0.63 | −0.80 | 0.687 | 7,000 | Bad |
+| `0ae253f0` | $10^{-5}$ | 0.1 | 0.587 | 0.107 | 1.07 | −3.47 | −4.54 | 0.669 | 8,000 | Bad |
+| `38139929` | $3 \times 10^{-5}$ | 0.1 | 0.601 | 0.196 | 1.96 | −4.84 | −6.80 | 0.655 | 8,308 | Bad |
+| `75047d16` | $10^{-4}$ | 0.1 | 0.635 | 0.348 | 3.48 | −6.44 | −9.92 | 0.632 | 7,500 | Good, the arm |
+| `c5d8a287` | $3 \times 10^{-4}$ | 0.1 | 0.642 | 0.483 | 4.83 | −12.90 | −17.73 | 0.639 | 8,308 | Mixed |
+| `65674cc2` | $10^{-4}$ | 0.05 | 0.649 | 0.382 | 7.64 | −18.76 | −26.40 | 0.616 | 8,308 | Mixed |
+| `4e27ae3a` | $10^{-4}$ | 0.3 | 0.603 | 0.295 | 0.98 | −1.50 | −2.49 | 0.667 | 7,000 | Mixed |
+
+Table 5: All seven runs, scored on the 6,033-pair gate at each run's selected checkpoint. The first five rows are the learning-rate sweep at beta 0.1, and the last two complete the beta sweep at a learning rate of 1e-4. h is the gate margin divided by beta, and drift is each side's gate implicit reward divided by beta, in nats relative to the reference policy.
+
+Every run trained stably, with no gradient-norm excursion, and none memorised its training pairs: in every run, training accuracy over the last 200 steps is within 0.021 of the final subsample accuracy.
 
 ### 9.1. Learning-Rate Sweep
 
-The rate was swept at $\beta = 0.1$ throughout, over five values. The published DPO rate of $5 \times 10^{-7}$ and the $10^{-7}$ to $10^{-6}$ range in the surrounding literature are full-fine-tuning rates. A LoRA adapter starts at zero, so they were treated as a starting point rather than a default.
+The rate was swept over five values at $\beta = 0.1$, the first five rows of [Table 5](#tab-dpo-runs). Gate accuracy and chosen-side drift both rise monotonically with the rate.
 
-<a id="tab-dpo-lr-sweep"></a>
+- $5 \times 10^{-7}$, the DPO paper's full-fine-tuning rate, is a near-null on a LoRA adapter. After a full epoch its gate margin is 0.016 and its accuracy 0.553. Bad.
+- $10^{-5}$ and $3 \times 10^{-5}$ reach 0.587 and 0.601, below and at the floor of the 0.6 to 0.7 band. Bad.
+- $10^{-4}$ is the lowest rate to clear the band with room to spare. It is the arm.
+- $3 \times 10^{-4}$ gains 0.007 over the arm, about one gate standard error, for twice the chosen-side drift. Its gate loss is also higher, at 0.639 against 0.632, so loss and accuracy rank these two runs in opposite orders. Mixed.
 
-| Run | Learning rate | Steps | Accuracy at 500 / 1000 / 1500 | Margin at 500 / 1000 / 1500 | Chosen drift at 1500 | Outcome |
-|---|---|---|---|---|---|---|
-| `e7492fba` | $5 \times 10^{-7}$ | 2,500 of 8,308 | 0.510 / 0.504 / 0.528 | 0.003 / 0.003 / 0.007 | −0.17 | Bad, stopped |
-| `7bc05fb0` | $10^{-5}$ | 1,500 of 8,308 | 0.548 / 0.543 / 0.550 | 0.038 / 0.058 / 0.071 | −2.07 | Bad, stopped |
-| `38139929` | $3 \times 10^{-5}$ | 1,500 of 8,308 | 0.551 / 0.562 / 0.559 | 0.065 / 0.085 / 0.100 | −2.63 | Bad, stopped |
-| `75047d16` | $10^{-4}$ | 8,308 of 8,308 | 0.556 / 0.559 / 0.593 | 0.108 / 0.128 / 0.178 | −4.21 | Good, gate 0.635 |
-| `c5d8a287` | $3 \times 10^{-4}$ | 8,308 of 8,308 | 0.568 / 0.570 / 0.610 | 0.143 / 0.173 / 0.301 | −11.85 | Mixed, gate 0.642 |
-
-Table 5: The five learning-rate runs at beta = 0.1, with in-training accuracy and implicit-reward margin at the first three evaluations, the chosen-side drift at step 1,500 in nats relative to the reference policy, i.e. the chosen reward divided by beta, and the outcome of each.
-
-The three lowest rates are unambiguous failures. At $5 \times 10^{-7}$ the margin moved 0.007 in 1,500 steps and accuracy stayed within one standard error of chance, a null result. At $10^{-5}$ and $3 \times 10^{-5}$ accuracy reached 0.550 and 0.559 by step 1,500, both inside one standard error of each other and far below the 0.6 to 0.7 band. The two highest rates both completed and both cleared the band, at 0.635 and 0.642.
-
-$3 \times 10^{-4}$ was run last, after the beta sweep, to test whether the rate had been left too low. It trained cleanly, with a median gradient norm of 1.17 against 0.97 at $10^{-4}$, a maximum of 2.06 against 1.60, and no instability. It also selected its final checkpoint rather than an earlier one, so it did not overfit by evaluation loss within the epoch. Its gate accuracy is 0.642 against 0.635, a gap of about one gate standard error, while its chosen-side drift is −12.90 nats against −6.44, and its gate loss is worse at 0.639 against 0.632. Over half of its total drift was already present at its first evaluation, which recorded −9.67 nats at step 500 against −4.74 for $10^{-4}$.
-
-Two properties of this sweep are worth recording, because both were initially misread.
-
-- Accuracy lags the margin. At step 500 the $3 \times 10^{-5}$ and $10^{-4}$ runs stand at 0.551 and 0.556, a third of a standard error apart, while their margins are 0.065 and 0.108. The accuracy curves separate only at step 1,500. A learning-rate trial read on accuracy before step 2,000 would have discarded the rate that worked.
-- The rate and likelihood displacement move together. The drift column is monotone in the rate, from −0.17 nats at $5 \times 10^{-7}$ to −11.85 at $3 \times 10^{-4}$, so the accuracy the higher rates gained was bought with movement away from the reference policy. Displacement was not what held the three stopped runs back, and the rate was raised rather than $\beta$ or the loss type changed. The same drift measure is the axis on which $\beta$ is chosen in [Section 9.2](#92-beta-sweep), so the two sweeps are read against one criterion.
+One property of the sweep bears on how any future rate trial should be read. Accuracy lags the margin: at step 500 the $3 \times 10^{-5}$ and $10^{-4}$ runs score 0.551 and 0.556 on the subsample, a third of a standard error apart, while their margins are already 0.065 and 0.108. Their accuracy curves separate only by step 1,500, at 0.559 and 0.593. A rate trial judged on accuracy that early would have discarded the rate that worked.
 
 ### 9.2. Beta Sweep
 
-With the rate fixed at $10^{-4}$, $\beta$ was swept over 0.05, 0.1 and 0.3, each for a full epoch. All three reached the gate. Because TRL scales the logged reward by $\beta$, the raw margin is not comparable across these runs, so the table also reports the underlying log-ratio gap $h$, i.e. the margin divided by $\beta$, and the chosen and rejected drift in nats relative to the reference policy.
+$\beta$ was swept over 0.05, 0.1 and 0.3 at a learning rate of $10^{-4}$, i.e. the arm and the last two rows of [Table 5](#tab-dpo-runs). Lowering $\beta$ raises accuracy and drift together: from $\beta = 0.3$ to 0.05, gate accuracy rises from 0.603 to 0.649 while chosen-side drift grows from −1.50 to −18.76 nats. The rejected side drifts further than the chosen side in all three, so each margin is earned mainly by suppressing the rejected response. The median gradient norm rises with $\beta$, from 0.66 at 0.05 to 2.29 at 0.3, as expected from the factor of $\beta$ in the DPO gradient.
 
-<a id="tab-dpo-beta-sweep"></a>
-
-| Run | Beta | Gate accuracy | Gate margin | Gate h | Gate loss | Chosen drift | Rejected drift | Median grad norm | Verdict |
-|---|---|---|---|---|---|---|---|---|---|
-| `65674cc2` | 0.05 | 0.649 | 0.382 | 7.64 | 0.616 | −18.76 | −26.40 | 0.66 | Mixed |
-| `75047d16` | 0.1 | 0.635 | 0.348 | 3.48 | 0.632 | −6.44 | −9.92 | 0.97 | Good |
-| `4e27ae3a` | 0.3 | 0.603 | 0.295 | 0.98 | 0.667 | −1.50 | −2.49 | 2.29 | Mixed |
-
-Table 6: The three beta runs at a learning rate of 1e-4, scored on the 6,033-pair gate at the checkpoint selected by evaluation loss. Drift columns are the chosen-side and rejected-side rewards divided by beta, in nats relative to the reference policy.
-
-All three runs completed without instability. Evaluation runtime held between 271 and 277 s, evaluation loss fell monotonically in each, and no run showed a gradient-norm excursion, although the median gradient norm rises with $\beta$ as expected from the factor of $\beta$ in the gradient.
-
-The three sit on a single monotone trade-off, and neither end of it is free.
-
-- $\beta = 0.05$ has the best gate accuracy at 0.649 and the worst drift by a wide margin, with the policy 18.76 nats below the reference on chosen responses. It gains 0.014 accuracy over $\beta = 0.1$, which is close to twice the gate standard error, in exchange for roughly three times the chosen-side drift. Mixed.
-- $\beta = 0.1$ sits in the middle on every column. Good.
-- $\beta = 0.3$ has the least drift at 1.50 nats and the worst gate accuracy at 0.603, 0.032 below $\beta = 0.1$, which is about five gate standard errors. Mixed.
-
-One measurement caution follows from the two populations. On the 1,000-pair in-training subsample at step 8,308 the three runs score 0.656, 0.641 and 0.643 for $\beta$ of 0.05, 0.1 and 0.3, which would place $\beta = 0.3$ level with $\beta = 0.1$. The gate reverses that. Two differences account for it: the subsample carries a standard error near 0.016 against the gate's 0.006, and the subsample row is the final checkpoint whereas the gate scores the selected checkpoint, which is step 7,000 for $\beta = 0.3$, 7,500 for $\beta = 0.1$ and 8,308 for $\beta = 0.05$. Comparisons between runs are drawn from the gate for this reason.
+The subsample and the gate disagree on $\beta = 0.3$. On the subsample at step 8,308 it scores 0.643, level with the arm, whereas the gate places it 0.032 below. Two differences account for it: the subsample's standard error is 0.016 against the gate's 0.006, and its final row is the last checkpoint whereas the gate scores the selected one, step 7,000 for $\beta = 0.3$. This is why runs are compared on the gate.
 
 ### 9.3. Selected Configuration
 
-Four runs completed a full epoch and reached the gate. Sorted by chosen-side drift, they order identically on accuracy, and the two axes vary together whichever knob produced the drift.
+The two sweeps together show that the knobs are not interchangeable. Within each sweep, accuracy rises with drift. Across them, $\beta = 0.3$ reaches 0.603 at −1.50 nats, matching or exceeding $10^{-5}$ and $3 \times 10^{-5}$ at $\beta = 0.1$ while drifting less than half as far as either. Those two rates are therefore dominated, i.e. another run has both higher accuracy and less drift. The remaining five runs form the accuracy–drift frontier: $5 \times 10^{-7}$, $\beta = 0.3$, the arm, $3 \times 10^{-4}$ and $\beta = 0.05$, in order of increasing drift. The verdicts in [Table 5](#tab-dpo-runs) follow from this: Bad marks a run below the band or dominated, Mixed a frontier run that trades one axis for the other against the arm, and Good the arm.
 
-<a id="tab-dpo-completed-runs"></a>
-
-| Run | Learning rate | Beta | Gate accuracy | Chosen drift |
-|---|---|---|---|---|
-| `4e27ae3a` | $10^{-4}$ | 0.3 | 0.603 | −1.50 |
-| `75047d16` | $10^{-4}$ | 0.1 | 0.635 | −6.44 |
-| `c5d8a287` | $3 \times 10^{-4}$ | 0.1 | 0.642 | −12.90 |
-| `65674cc2` | $10^{-4}$ | 0.05 | 0.649 | −18.76 |
-
-Table 7: The four completed runs ordered by chosen-side drift, with gate accuracy on the 6,033 pairs and drift in nats relative to the reference policy, i.e. the chosen reward divided by beta.
-
-Two knobs produced this spread. Rows two to four hold $\beta$ at 0.1 or vary it at a fixed rate, and the ordering does not distinguish them: the run that drifted furthest scored highest whether the drift came from a lower $\beta$ or a higher rate. Gate accuracy on this stage is therefore not independent of how far the policy moved from the reference, which is what makes it unusable as the sole selection criterion.
-
-The main-text arm is `75047d16`, i.e. a learning rate of $10^{-4}$ and $\beta = 0.1$, with the sigmoid loss and the adapter of [Section 3.4](#34-adapter-parity-with-the-ppo-policy). It is carried in `configs/dpo_default.json`.
-
-Three rates below $10^{-4}$ failed to clear the band at all ([Table 5](#tab-dpo-lr-sweep)), which fixes the lower bound. Above it, the remaining three completed runs each buy accuracy with drift, and the same rule was applied to all three: a configuration displaces the arm only by scoring higher at drift no worse than the arm's.
+One rule decides every run: a configuration displaces the arm only by scoring higher on the gate at chosen-side drift no worse than the arm's −6.44 nats. No run meets it. Every run with less drift scores lower, and the two that score higher drift two and three times as far.
 
 - `65674cc2` at $\beta = 0.05$ gains 0.014 accuracy for 2.9 times the drift.
-- `c5d8a287` at $3 \times 10^{-4}$ gains 0.007, about one gate standard error, for 2.0 times the drift, and its gate loss is worse at 0.639 against 0.632.
-- `4e27ae3a` at $\beta = 0.3$ cuts drift to 0.23 times the arm's but loses 0.032 accuracy, the largest gap in the table.
+- `c5d8a287` at $3 \times 10^{-4}$ gains 0.007 for 2.0 times the drift.
+- `4e27ae3a` at $\beta = 0.3$ cuts drift to 0.23 times the arm's but loses 0.032 accuracy, the only gap of the three well beyond the gate's standard error.
 
-None meets the rule, so the arm stands. Likelihood displacement is the failure mode this stage was built to watch ([Section 3.6](#36-beta-loss-type-and-likelihood-displacement)), and at $\beta = 0.1$ and $10^{-4}$ the chosen-side log-probability falls 1.35 nats across the epoch while the rejected side falls 4.04, so the margin is earned mainly by suppressing the rejected side. At $\beta = 0.05$ the corresponding falls are 10.33 and 17.06.
-
-This selection rests on the gate and the training diagnostics. The arm's generations have been checked for form ([Section 7.2](#72-generation-health)) but not judged for quality, and the comparison of [Section 6](#6-comparative-evaluation-protocol) has not been run.
+The arm is therefore `75047d16`, carried in `configs/dpo_default.json` and promoted to `dpo-model/`. The selection rests on the gate and the training diagnostics. The arm's generations have been checked for form ([Section 7.2](#72-generation-health)) but not yet judged for quality.
 
 ## 10. References
 
